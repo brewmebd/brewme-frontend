@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="circle-clip">
+      <circle cx="256" cy="256" r="256" />
+    </clipPath>
+    
+    <!-- Reusable Coffee Bean Component -->
+    <g id="bean">
+      <!-- Top (light) half -->
+      <ellipse cx="0" cy="0" rx="90" ry="60" fill="#795548" />
+      <!-- Bottom (dark) half -->
+      <path d="M -90 0 A 90 60 0 0 0 90 0 Z" fill="#5D4037" />
+      <!-- Center crease -->
+      <rect x="-60" y="-6" width="120" height="12" fill="#3E2723" />
+    </g>
+  </defs>
+
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="256" fill="#FFD54F" />
+
+  <!-- 45-Degree Flat Long Shadows -->
+  <g clip-path="url(#circle-clip)" fill="#FFCA28">
+    <!-- Bottom-Left Bean Shadow -->
+    <polygon points="95.1,343.3 244.9,276.7 544.9,576.7 395.1,643.3" />
+    <!-- Top Bean Shadow -->
+    <polygon points="207.6,202.4 292.4,117.6 592.4,417.6 507.6,502.4" />
+    <!-- Bottom-Right Bean Shadow -->
+    <polygon points="301.4,383.6 428.6,256.4 728.6,556.4 601.4,683.6" />
+  </g>
+
+  <!-- Coffee Beans Layer -->
+  <use href="#bean" transform="translate(170, 310)" />
+  <use href="#bean" transform="translate(250, 160) rotate(45)" />
+  <use href="#bean" transform="translate(365, 320) rotate(-45)" />
+</svg>

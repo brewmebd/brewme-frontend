@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+/* ── BrewMe Design Tokens ── */
+@theme {
+  --font-inter: "Inter", sans-serif;
+
+  --color-brew-yellow: #F5C518;
+  --color-brew-yellow-light: #FFFDE7;
+  --color-brew-yellow-hover: #E6B800;
+  --color-brew-yellow-soft: #FFFDE7;
+  --color-brew-yellow-badge: #FFF9C4;
+  --color-brew-yellow-badge-text: #7A6000;
+  --color-brew-border: #F0F0F0;
+  --color-brew-muted: #6B6B6B;
+  --color-brew-text: #1A1A1A;
+  --color-brew-input-border: #E0E0E0;
+
+  --radius-pill: 9999px;
+  --radius-card: 16px;
+  --radius-input: 10px;
+
+  --shadow-card: 0 2px 8px 0 rgba(245, 197, 24, 0.06);
+  --shadow-card-hover: 0 8px 24px 0 rgba(245, 197, 24, 0.12);
+}
+
+/* ── Base Reset ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-inter);
+  color: var(--color-brew-text);
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Custom Animations ── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease both;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease both;
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.4s ease both;
+}
+
+.animate-pulse-price {
+  animation: pulse 0.3s ease;
+}
+
+.animate-toast {
+  animation: toastIn 0.35s ease both;
+}
+
+/* Staggered delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-800 { animation-delay: 800ms; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-brew-yellow-light);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brew-yellow);
+  border-radius: 9999px;
+}
+
+/* ── Focus States ── */
+:focus-visible {
+  outline: 2px solid var(--color-brew-yellow);
+  outline-offset: 2px;
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--color-brew-yellow);
+  color: var(--color-brew-text);
+}
