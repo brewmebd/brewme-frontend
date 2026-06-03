@@ -34,13 +34,13 @@ A polished, responsive UI built around a coffee-purchase metaphor:
 BrewMe wears a **bold, warm, neobrutalist** look — thick borders, hard offset
 shadows, and a signature espresso-on-cream palette.
 
-| Token | Hex | Use |
-|---|---|---|
-| `brew-yellow` | `#F5C518` | Primary accent, buttons, highlights |
-| `brew-yellow-light` | `#FFFDE7` | Page & card backgrounds |
-| `brew-yellow-hover` | `#E6B800` | Hover states |
-| `brew-text` | `#1A1A1A` | Text, borders, shadows |
-| `brew-muted` | `#6B6B6B` | Secondary text |
+| Token               | Hex       | Use                                 |
+| ------------------- | --------- | ----------------------------------- |
+| `brew-yellow`       | `#F5C518` | Primary accent, buttons, highlights |
+| `brew-yellow-light` | `#FFFDE7` | Page & card backgrounds             |
+| `brew-yellow-hover` | `#E6B800` | Hover states                        |
+| `brew-text`         | `#1A1A1A` | Text, borders, shadows              |
+| `brew-muted`        | `#6B6B6B` | Secondary text                      |
 
 Type: **Inter**, leaning into heavy weights and uppercase tracking for headings.
 
@@ -100,25 +100,25 @@ VITE_API_URL=http://localhost:8080/api/v1
 
 ## 🧭 Routes
 
-| Path | Screen |
-|---|---|
-| `/` | Home |
-| `/explore` | Explore / discovery |
-| `/signup`, `/login` | Authentication |
-| `/:username` | Public creator profile |
-| `/dashboard` | Overview |
-| `/dashboard/supporters` · `/earnings` · `/posts` · `/memberships` · `/settings` | Dashboard screens |
+| Path                                                                            | Screen                 |
+| ------------------------------------------------------------------------------- | ---------------------- |
+| `/`                                                                             | Home                   |
+| `/explore`                                                                      | Explore / discovery    |
+| `/signup`, `/login`                                                             | Authentication         |
+| `/:username`                                                                    | Public creator profile |
+| `/dashboard`                                                                    | Overview               |
+| `/dashboard/supporters` · `/earnings` · `/posts` · `/memberships` · `/settings` | Dashboard screens      |
 
 ---
 
 ## 📜 Scripts
 
-| Command | Does |
-|---|---|
-| `npm run dev` | Start the dev server |
-| `npm run build` | Production build |
+| Command           | Does                         |
+| ----------------- | ---------------------------- |
+| `npm run dev`     | Start the dev server         |
+| `npm run build`   | Production build             |
 | `npm run preview` | Preview the production build |
-| `npm run lint` | Run ESLint |
+| `npm run lint`    | Run ESLint                   |
 
 ---
 
