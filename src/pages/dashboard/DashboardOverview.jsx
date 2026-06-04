@@ -220,8 +220,8 @@ export default function DashboardOverview() {
                 key={i}
                 className={`flex items-start gap-4 py-4 ${i !== recentActivity.length - 1 ? "border-b-2 border-dashed border-brew-text/20" : ""}`}
               >
-                <div className="w-12 h-12 rounded-xl border-2 border-brew-text bg-brew-yellow flex items-center justify-center shrink-0 text-xl shadow-[3px_3px_0px_0px_currentColor]">
-                  ☕
+                <div className="w-12 h-12 rounded-xl border-2 border-brew-text bg-brew-yellow flex items-center justify-center shrink-0 shadow-[3px_3px_0px_0px_currentColor]">
+                  <Coffee size={22} strokeWidth={3} />
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
                   <p className="font-inter text-sm text-brew-text leading-tight mb-1">

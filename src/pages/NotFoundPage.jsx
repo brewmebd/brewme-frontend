@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Coffee } from 'lucide-react'
 import Button from '../components/Button'
 
 export default function NotFoundPage() {
@@ -6,7 +7,7 @@ export default function NotFoundPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-brew-yellow-light">
       {/* Coffee Spill Illustration */}
       <div className="relative mb-8 animate-fade-up">
-        <div className="text-8xl md:text-9xl">☕</div>
+        <Coffee className="w-28 h-28 md:w-36 md:h-36 text-brew-text" strokeWidth={2.5} />
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-20 h-4 bg-brew-yellow/30 rounded-full blur-sm" />
         <div className="absolute bottom-0 right-0 text-3xl rotate-12 animate-float" style={{ animationDelay: '1s' }}>💧</div>
       </div>

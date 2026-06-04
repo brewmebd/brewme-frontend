@@ -37,8 +37,8 @@ export default function DashboardLayout() {
       <aside className="hidden md:flex flex-col w-72 bg-white border-r-4 border-brew-text fixed h-full z-40">
         <div className="flex items-center px-6 h-20 border-b-4 border-brew-text bg-brew-yellow">
           <Link to="/" className="flex items-center gap-3 no-underline group">
-            <div className="w-10 h-10 bg-white border-2 border-brew-text rounded-xl shadow-[2px_2px_0px_0px_currentColor] flex items-center justify-center text-xl transition-transform group-hover:-translate-y-1">
-              ☕
+            <div className="w-10 h-10 bg-white border-2 border-brew-text rounded-xl shadow-[2px_2px_0px_0px_currentColor] flex items-center justify-center transition-transform group-hover:-translate-y-1">
+              <Coffee size={20} strokeWidth={3} />
             </div>
             <span className="font-black text-2xl uppercase tracking-tighter text-brew-text">
               BrewMe
@@ -86,7 +86,7 @@ export default function DashboardLayout() {
       {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b-4 border-brew-text flex items-center justify-between px-4 h-16">
         <Link to="/" className="flex items-center gap-2 no-underline">
-          <span className="text-xl">☕</span>
+          <Coffee size={20} strokeWidth={3} className="text-brew-text" />
           <span className="font-black text-xl uppercase tracking-tighter text-brew-text">
             BrewMe
           </span>

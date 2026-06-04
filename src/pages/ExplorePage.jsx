@@ -4,7 +4,7 @@ import Card from "../components/Card";
 import Badge from "../components/Badge";
 import Avatar from "../components/Avatar";
 import Input from "../components/Input";
-import { Search } from "lucide-react";
+import { Search, Coffee } from "lucide-react";
 
 const allCreators = [
   {
@@ -223,8 +223,9 @@ export default function ExplorePage() {
                   </p>
 
                   <div className="mt-auto border-t-2 border-brew-text pt-4 bg-brew-yellow-light/50 -mx-6 -mb-6 p-4 rounded-b-3xl">
-                    <p className="font-inter text-xs font-black text-brew-text uppercase tracking-widest">
-                      ☕ {creator.supporters.toLocaleString()} supporters
+                    <p className="font-inter text-xs font-black text-brew-text uppercase tracking-widest inline-flex items-center gap-1.5">
+                      <Coffee size={14} strokeWidth={3} />
+                      {creator.supporters.toLocaleString()} supporters
                     </p>
                   </div>
                 </div>
