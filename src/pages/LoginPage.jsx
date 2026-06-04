@@ -1,15 +1,77 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Button from "../components/Button";
-import Input from "../components/Input";
-import Card from "../components/Card";
+import Toast from "../components/Toast";
+import { API_BASE, isAuthenticated, setToken } from "../lib/api";
 import { ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({ email: "", password: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // Where to send the user after login: back to the page that bounced them
+  // here, or the dashboard by default.
+  const redirectTo = location.state?.from?.pathname || "/dashboard";
+
+  // Already logged in? Skip the login form.
+  useEffect(() => {
+    if (isAuthenticated()) navigate(redirectTo, { replace: true });
+  }, [navigate, redirectTo]);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+
+    if (!form.email.trim() || !form.password) {
+      setToast({ type: "error", message: "Enter your email and password." });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      let body = {};
+      try {
+        body = await res.json();
+      } catch {
+        // non-JSON error response (e.g. plain-text 500)
+      }
+
+      if (!res.ok || !body.token) {
+        setToast({
+          type: "error",
+          message: body.message || body.error || "Invalid email or password.",
+        });
+        return;
+      }
+
+      setToken(body.token);
+      setToast({ type: "success", message: "Login successful! Redirecting…" });
+      setTimeout(() => navigate(redirectTo, { replace: true }), 800);
+    } catch {
+      setToast({
+        type: "error",
+        message: "Could not reach the server. Is the backend running?",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex bg-[#fffdf0]">
@@ -40,7 +102,7 @@ export default function LoginPage() {
           </div>
 
           <div className="bg-white border-2 border-brew-text rounded-[32px] p-8 md:p-10 shadow-[12px_12px_0px_0px_currentColor]">
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label
                   htmlFor="login-email"
@@ -86,10 +148,13 @@ export default function LoginPage() {
               </div>
 
               <Button
+                type="submit"
                 variant="primary"
-                className="flex w-full min-h-[60px] items-center justify-center gap-2 rounded-2xl border-2 border-brew-text bg-brew-yellow px-8 py-4 font-inter text-lg font-black text-brew-text shadow-[4px_4px_0px_0px_currentColor] transition-all duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_currentColor] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none mt-6"
+                disabled={submitting}
+                className="flex w-full min-h-[60px] items-center justify-center gap-2 rounded-2xl border-2 border-brew-text bg-brew-yellow px-8 py-4 font-inter text-lg font-black text-brew-text shadow-[4px_4px_0px_0px_currentColor] transition-all duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_currentColor] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none mt-6 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
               >
-                Log in <ArrowRight size={20} strokeWidth={3} />
+                {submitting ? "Logging in…" : "Log in"}
+                {!submitting && <ArrowRight size={20} strokeWidth={3} />}
               </Button>
             </form>
 
@@ -107,6 +172,14 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

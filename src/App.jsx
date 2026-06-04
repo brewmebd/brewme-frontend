@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import DashboardLayout from './components/DashboardLayout'
+import RequireAuth from './components/RequireAuth'
 import HomePage from './pages/HomePage'
 import SignUpPage from './pages/SignUpPage'
 import LoginPage from './pages/LoginPage'
@@ -24,13 +25,15 @@ function App() {
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/:username" element={<CreatorProfilePage />} />
       </Route>
-      <Route path="/dashboard" element={<DashboardLayout />}>
+      <Route element={<RequireAuth />}>
+        <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<DashboardOverview />} />
         <Route path="supporters" element={<DashboardSupporters />} />
         <Route path="earnings" element={<DashboardEarnings />} />
         <Route path="posts" element={<DashboardPosts />} />
         <Route path="memberships" element={<DashboardMemberships />} />
         <Route path="settings" element={<DashboardSettings />} />
+        </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

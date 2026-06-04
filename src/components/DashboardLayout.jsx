@@ -1,4 +1,5 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { logout } from "../lib/api";
 import {
   LayoutDashboard,
   Users,
@@ -24,7 +25,13 @@ const sidebarLinks = [
 
 export default function DashboardLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
 
   const isActive = (link) => {
     if (link.exact) return location.pathname === link.to;
@@ -36,7 +43,10 @@ export default function DashboardLayout() {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-72 bg-white border-r-4 border-brew-text fixed h-full z-40">
         <div className="flex items-center px-6 h-20 border-b-4 border-brew-text bg-brew-yellow">
-          <Link to="/" className="flex items-center gap-3 no-underline group">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-3 no-underline group"
+          >
             <div className="w-10 h-10 bg-white border-2 border-brew-text rounded-xl shadow-[2px_2px_0px_0px_currentColor] flex items-center justify-center transition-transform group-hover:-translate-y-1">
               <Coffee size={20} strokeWidth={3} />
             </div>
@@ -73,13 +83,13 @@ export default function DashboardLayout() {
         </nav>
 
         <div className="p-4 border-t-4 border-brew-text bg-white">
-          <Link
-            to="/"
-            className="flex items-center justify-center gap-3 w-full px-4 py-3.5 rounded-xl border-2 border-brew-text bg-[#fffdf0] text-sm font-black uppercase tracking-widest text-brew-text hover:bg-brew-yellow hover:shadow-[4px_4px_0px_0px_currentColor] hover:-translate-y-1 transition-all"
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center gap-3 w-full px-4 py-3.5 rounded-xl border-2 border-brew-text bg-[#fffdf0] text-sm font-black uppercase tracking-widest text-brew-text hover:bg-brew-yellow hover:shadow-[4px_4px_0px_0px_currentColor] hover:-translate-y-1 transition-all cursor-pointer"
           >
             <LogOut size={18} strokeWidth={3} />
             Log out
-          </Link>
+          </button>
         </div>
       </aside>
 
