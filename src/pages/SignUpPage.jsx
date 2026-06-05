@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import Toast from "../components/Toast";
 import { API_BASE } from "../lib/api";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check, X, Loader2 } from "lucide-react";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
@@ -21,9 +21,46 @@ export default function SignUpPage() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
+  const [urlStatus, setUrlStatus] = useState(null); // null, 'checking', 'available', 'taken', 'too-short'
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
+
+  useEffect(() => {
+    const username = form.url.trim();
+    if (!username) {
+      setUrlStatus(null);
+      return;
+    }
+
+    if (username.length < 3) {
+      setUrlStatus("too-short");
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setUrlStatus("checking");
+      try {
+        const res = await fetch(
+          `${API_BASE}/auth/username-available?username=${username}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          // Only update if the current form URL still matches the checked username
+          if (form.url.trim() === username) {
+            setUrlStatus(data.available ? "available" : "taken");
+          }
+        } else {
+          setUrlStatus(null);
+        }
+      } catch (err) {
+        console.error("Error checking username:", err);
+        setUrlStatus(null);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [form.url]);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -279,7 +316,31 @@ export default function SignUpPage() {
                   onChange={handleChange}
                   className="flex-1 w-full min-w-0 px-3 py-3 bg-transparent font-inter font-black text-brew-text outline-none placeholder:text-brew-text/30 placeholder:font-medium"
                 />
+                <div className="flex items-center pr-3">
+                  {urlStatus === "checking" && (
+                    <Loader2 className="h-5 w-5 animate-spin text-brew-text/40" />
+                  )}
+                  {urlStatus === "available" && (
+                    <Check className="h-5 w-5 text-green-500" />
+                  )}
+                  {urlStatus === "taken" && <X className="h-5 w-5 text-red-500" />}
+                </div>
               </div>
+              {urlStatus === "available" && (
+                <p className="mt-2 text-[11px] font-inter font-black text-green-600 uppercase tracking-widest">
+                  Username is available!
+                </p>
+              )}
+              {urlStatus === "taken" && (
+                <p className="mt-2 text-[11px] font-inter font-black text-red-500 uppercase tracking-widest">
+                  Username is already taken.
+                </p>
+              )}
+              {urlStatus === "too-short" && (
+                <p className="mt-2 text-[11px] font-inter font-black text-brew-text/40 uppercase tracking-widest">
+                  Must be at least 3 characters.
+                </p>
+              )}
               {errors.url && (
                 <p className="mt-2 text-[11px] font-inter font-black text-red-500 uppercase tracking-widest">
                   {errors.url}
@@ -386,7 +447,7 @@ export default function SignUpPage() {
             <Button
               type="submit"
               variant="primary"
-              disabled={submitting}
+              disabled={submitting || urlStatus === "checking" || urlStatus === "taken" || urlStatus === "too-short"}
               className="flex w-full min-h-[56px] items-center justify-center gap-2 rounded-xl border-2 border-brew-text bg-brew-yellow px-8 py-4 font-inter text-lg font-black text-brew-text shadow-[4px_4px_0px_0px_currentColor] transition-all duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_currentColor] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none mt-6 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
             >
               {submitting ? "Creating…" : "Create your page"}
