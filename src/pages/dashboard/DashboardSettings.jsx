@@ -4,7 +4,7 @@ import Button from "../../components/Button";
 import Input from "../../components/Input";
 import Avatar from "../../components/Avatar";
 import Toast from "../../components/Toast";
-import { Camera, Link2, Bell, CreditCard, Save, Check, X, Loader2 } from "lucide-react";
+import { Camera, Link2, Bell, CreditCard, Save, Check, X, Loader2, Image as ImageIcon, Target } from "lucide-react";
 import { getProfile, API_ORIGIN } from "../../lib/api";
 
 export default function DashboardSettings() {
@@ -16,6 +16,10 @@ export default function DashboardSettings() {
     slug: "",
     email: "",
     image: "",
+    cover_image: "",
+    category: "Digital Art",
+    goal_title: "Improving equipment for higher quality creative work.",
+    goal_amount: "500",
   });
 
   const [notifications, setNotifications] = useState({
@@ -24,6 +28,11 @@ export default function DashboardSettings() {
     weeklyReport: false,
     marketingEmails: false,
   });
+
+  const categories = [
+    "Digital Art", "Music", "Writing", "Podcasting", "Open Source", 
+    "Education", "Gaming", "Photography", "Film", "Cooking", "Tech", "Fitness"
+  ];
 
   const [showToast, setShowToast] = useState(false);
 
@@ -39,6 +48,10 @@ export default function DashboardSettings() {
             slug: info.creator_url || "",
             email: info.creator_email || "",
             image: info.creator_image ? `${API_ORIGIN}${info.creator_image}` : "",
+            cover_image: info.cover_image ? `${API_ORIGIN}${info.cover_image}` : "",
+            category: info.creator_category || "Digital Art",
+            goal_title: info.goal_title || "Improving equipment for higher quality creative work.",
+            goal_amount: info.goal_amount || "500",
           });
         }
       } catch (err) {
@@ -60,280 +73,181 @@ export default function DashboardSettings() {
 
   const handleSave = () => {
     setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-brew-text">
         <Loader2 size={48} className="text-brew-yellow animate-spin" strokeWidth={3} />
-        <p className="font-inter font-black text-brew-text uppercase tracking-widest text-sm">Loading Settings...</p>
+        <p className="font-inter font-black uppercase tracking-widest text-sm">Loading Settings...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-10">
+    <div className="animate-fade-up text-brew-text max-w-5xl mx-auto pb-20">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 animate-fade-up">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
         <div>
-          <div className="inline-block mb-3 px-4 py-1.5 border-2 border-brew-text bg-brew-yellow font-inter font-black text-xs uppercase tracking-widest rounded-full shadow-[2px_2px_0px_0px_currentColor] -rotate-1">
-            Preferences
+          <div className="inline-block mb-2 px-3 py-1 border-2 border-brew-text bg-brew-yellow font-inter font-black text-[10px] uppercase tracking-widest rounded-full shadow-[2px_2px_0px_0px_currentColor] -rotate-1">
+            Account
           </div>
-          <h1 className="font-inter font-black text-4xl md:text-5xl text-brew-text uppercase tracking-tight mb-2">
+          <h1 className="font-inter font-black text-3xl md:text-4xl uppercase tracking-tight mb-1">
             Settings
           </h1>
-          <p className="font-inter font-bold text-brew-text/70">
-            Manage your profile, account details, and notifications.
+          <p className="font-inter font-bold text-sm opacity-60">
+            Customize your profile and manage your preferences.
           </p>
         </div>
+        <button
+          onClick={handleSave}
+          className="flex items-center justify-center gap-2 px-8 py-3 border-2 border-brew-text bg-brew-text text-white font-inter font-black text-xs uppercase tracking-widest shadow-[3px_3px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all rounded-xl w-full sm:w-auto"
+        >
+          <Save size={16} strokeWidth={3} className="text-brew-yellow" />
+          Save Changes
+        </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border-4 border-brew-text p-4 rounded-2xl shadow-[6px_6px_0px_0px_currentColor] flex items-center gap-3">
+        <div className="bg-red-50 border-4 border-brew-text p-4 rounded-2xl shadow-[6px_6px_0px_0px_currentColor] flex items-center gap-3 mb-8">
           <X className="text-red-500" size={24} strokeWidth={3} />
           <p className="font-inter font-bold text-brew-text">{error}</p>
         </div>
       )}
 
-      {/* Profile Photo */}
-      <div className="bg-white border-4 border-brew-text rounded-[24px] p-6 md:p-8 shadow-[8px_8px_0px_0px_currentColor] animate-fade-up delay-100">
-        <h3 className="font-inter font-black text-xl text-brew-text uppercase tracking-wider mb-6 border-b-4 border-brew-text pb-2 inline-block">
-          Profile Photo
-        </h3>
-        <div className="flex items-center gap-6">
-          <div className="relative group cursor-pointer">
-            {/* Brutalist Avatar */}
-            <div className="w-24 h-24 rounded-full border-4 border-brew-text bg-brew-yellow-light flex items-center justify-center font-black text-3xl text-brew-text shadow-[4px_4px_0px_0px_currentColor] overflow-hidden">
-              <Avatar name={form.name} src={form.image} size="xl" className="w-full h-full" />
-            </div>
-            <button className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-brew-yellow flex items-center justify-center border-2 border-brew-text shadow-[2px_2px_0px_0px_currentColor] group-hover:scale-110 group-hover:rotate-12 transition-all">
-              <Camera size={18} strokeWidth={3} className="text-brew-text" />
-            </button>
-          </div>
-          <div>
-            <button className="font-inter font-black text-sm uppercase tracking-widest text-brew-text bg-[#fffdf0] px-4 py-2 border-2 border-brew-text rounded-lg shadow-[2px_2px_0px_0px_currentColor] hover:-translate-y-px hover:shadow-[3px_3px_0px_0px_currentColor] active:translate-y-px active:shadow-[1px_1px_0px_0px_currentColor] transition-all mb-2">
-              Upload new
-            </button>
-            <p className="font-inter font-bold text-xs text-brew-text/50 uppercase tracking-widest">
-              JPG, PNG or GIF. Max 2MB.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Profile Info Form */}
-      <div className="bg-white border-4 border-brew-text rounded-[24px] p-6 md:p-8 shadow-[8px_8px_0px_0px_currentColor] animate-fade-up delay-200">
-        <h3 className="font-inter font-black text-xl text-brew-text uppercase tracking-wider mb-6 border-b-4 border-brew-text pb-2 inline-block">
-          Profile Information
-        </h3>
-        <div className="space-y-6">
-          <div>
-            <label
-              htmlFor="settings-name"
-              className="block font-inter font-black text-sm text-brew-text mb-2 uppercase tracking-wide"
-            >
-              Display Name
-            </label>
-            <input
-              id="settings-name"
-              name="name"
-              type="text"
-              value={form.name}
-              onChange={handleChange}
-              className="w-full px-4 py-3.5 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-inter font-medium text-brew-text focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] focus:-translate-y-1 transition-all duration-200"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-bio"
-              className="block font-inter font-black text-sm text-brew-text mb-2 uppercase tracking-wide"
-            >
-              Bio
-            </label>
-            <textarea
-              id="settings-bio"
-              name="bio"
-              value={form.bio}
-              onChange={handleChange}
-              rows={4}
-              className="w-full px-4 py-3.5 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-inter font-medium text-brew-text focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] focus:-translate-y-1 transition-all duration-200 resize-none"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-slug"
-              className="block font-inter font-black text-sm text-brew-text mb-2 uppercase tracking-wide"
-            >
-              Page URL
-            </label>
-            <div className="flex items-stretch border-2 border-brew-text rounded-xl overflow-hidden focus-within:shadow-[4px_4px_0px_0px_currentColor] focus-within:-translate-y-1 transition-all duration-200 bg-[#fffdf0]">
-              <span className="flex items-center px-4 py-3.5 bg-brew-yellow border-r-2 border-brew-text font-inter font-black text-brew-text text-sm sm:text-base tracking-tight shrink-0">
-                brewme.com/
-              </span>
-              <input
-                id="settings-slug"
-                name="slug"
-                value={form.slug}
-                onChange={handleChange}
-                className="flex-1 w-full min-w-0 px-3 py-3.5 bg-transparent font-inter font-black text-brew-text outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-email"
-              className="block font-inter font-black text-sm text-brew-text mb-2 uppercase tracking-wide"
-            >
-              Email Address
-            </label>
-            <input
-              id="settings-email"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full px-4 py-3.5 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-inter font-medium text-brew-text focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] focus:-translate-y-1 transition-all duration-200"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Stripe Connect */}
-      <div className="bg-white border-4 border-brew-text rounded-[24px] p-6 md:p-8 shadow-[8px_8px_0px_0px_currentColor] animate-fade-up delay-300">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border-2 border-brew-text bg-brew-yellow rounded-lg flex items-center justify-center shadow-[2px_2px_0px_0px_currentColor]">
-              <CreditCard
-                size={18}
-                strokeWidth={3}
-                className="text-brew-text"
-              />
-            </div>
-            <h3 className="font-inter font-black text-xl text-brew-text uppercase tracking-wider">
-              Payouts
-            </h3>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-[#fffdf0] border-2 border-brew-text border-dashed rounded-xl">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white border-2 border-brew-text flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_currentColor]">
-              <CreditCard
-                size={20}
-                strokeWidth={3}
-                className="text-brew-text"
-              />
-            </div>
-            <div>
-              <p className="font-inter font-black text-sm text-brew-text uppercase tracking-widest mb-1">
-                Stripe Connected
-              </p>
-              <p className="font-inter font-bold text-xs text-brew-text/60 uppercase tracking-widest">
-                Ending in •••• 4242
-              </p>
-            </div>
-          </div>
-          <button className="px-5 py-2.5 border-2 border-brew-text bg-white font-inter font-black text-xs text-brew-text uppercase tracking-widest rounded-lg shadow-[2px_2px_0px_0px_currentColor] hover:-translate-y-px hover:shadow-[3px_3px_0px_0px_currentColor] active:translate-y-px active:shadow-[1px_1px_0px_0px_currentColor] transition-all w-full sm:w-auto">
-            Manage
-          </button>
-        </div>
-      </div>
-
-      {/* Notifications */}
-      <div className="bg-white border-4 border-brew-text rounded-[24px] p-6 md:p-8 shadow-[8px_8px_0px_0px_currentColor] animate-fade-up delay-400">
-        <div className="flex items-center gap-3 mb-8">
-          <Bell size={24} strokeWidth={3} className="text-brew-text" />
-          <h3 className="font-inter font-black text-xl text-brew-text uppercase tracking-wider border-b-4 border-brew-text pb-1 inline-block">
-            Notifications
-          </h3>
-        </div>
-
-        <div className="space-y-6">
-          {[
-            {
-              key: "newSupporter",
-              label: "New supporter",
-              desc: "Get notified when someone supports you.",
-            },
-            {
-              key: "newMessage",
-              label: "New message",
-              desc: "Get notified when you receive a message.",
-            },
-            {
-              key: "weeklyReport",
-              label: "Weekly report",
-              desc: "Receive a weekly earnings summary.",
-            },
-            {
-              key: "marketingEmails",
-              label: "Marketing emails",
-              desc: "Receive tips and product updates.",
-            },
-          ].map((item, i) => (
-            <div
-              key={item.key}
-              className={`flex items-center justify-between gap-6 pb-6 ${i !== 3 ? "border-b-2 border-dashed border-brew-text/20" : "pb-0"}`}
-            >
-              <div>
-                <p className="font-inter font-black text-sm text-brew-text uppercase tracking-wider mb-1">
-                  {item.label}
-                </p>
-                <p className="font-inter font-bold text-sm text-brew-text/60">
-                  {item.desc}
-                </p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Profile Visuals & Info */}
+        <div className="lg:col-span-8 space-y-8">
+          
+          {/* Visuals Card (Cover & Avatar) */}
+          <div className="bg-white border-4 border-brew-text rounded-[32px] overflow-hidden shadow-[8px_8px_0px_0px_currentColor]">
+            {/* Cover Preview */}
+            <div className="relative h-44 bg-brew-yellow border-b-4 border-brew-text group">
+              {form.cover_image ? (
+                <img src={form.cover_image} className="w-full h-full object-cover" alt="" />
+              ) : (
+                <div className="w-full h-full opacity-10" style={{ backgroundImage: 'radial-gradient(#3E2723 2px, transparent 2px)', backgroundSize: '24px 24px' }} />
+              )}
+              <div className="absolute inset-0 bg-brew-text/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                <button className="px-4 py-2 bg-white border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest shadow-[3px_3px_0px_0px_currentColor] hover:-translate-y-0.5 transition-all">
+                  <ImageIcon size={14} className="inline mr-2" /> Change Cover
+                </button>
               </div>
-
-              {/* Brutalist Toggle Switch */}
-              <button
-                onClick={() => handleToggle(item.key)}
-                className={`relative w-14 h-8 rounded-full border-2 border-brew-text transition-colors duration-200 shrink-0 cursor-pointer shadow-[2px_2px_0px_0px_currentColor]
-              ${notifications[item.key] ? "bg-brew-yellow" : "bg-[#fffdf0]"}`}
-                role="switch"
-                aria-checked={notifications[item.key]}
-              >
-                <div
-                  className={`absolute top-0.5 bottom-0.5 w-6 border-2 border-brew-text rounded-full bg-white transition-transform duration-200
-              ${notifications[item.key] ? "translate-x-6" : "translate-x-1"}`}
-                />
-              </button>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Fixed Save Bar / Button */}
-      <div className="pt-4 pb-12 animate-fade-up delay-500 flex justify-end">
-        <button
-          onClick={handleSave}
-          className="flex items-center justify-center gap-2 px-10 py-4 border-4 border-brew-text bg-brew-text text-[#fffdf0] font-inter font-black text-base uppercase tracking-widest shadow-[6px_6px_0px_0px_#F5C518] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#F5C518] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none transition-all w-full sm:w-auto rounded-xl"
-        >
-          <Save size={20} strokeWidth={3} className="text-brew-yellow" /> Save
-          Changes
-        </button>
-      </div>
-
-      {/* Brutalist Toast Overlay */}
-      {showToast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-slide-in-up">
-          <div className="flex items-center gap-4 bg-brew-yellow border-4 border-brew-text p-4 md:p-5 rounded-2xl shadow-[6px_6px_0px_0px_currentColor]">
-            <div className="w-8 h-8 rounded-full bg-white border-2 border-brew-text flex items-center justify-center shrink-0">
-              <Check size={16} strokeWidth={4} className="text-brew-text" />
+            
+            {/* Avatar Section */}
+            <div className="p-8 -mt-20 relative flex flex-col md:flex-row items-end gap-6">
+              <div className="relative group">
+                <div className="w-32 h-32 rounded-full border-4 border-brew-text bg-white shadow-[4px_4px_0px_0px_currentColor] overflow-hidden flex items-center justify-center ring-8 ring-white">
+                  <Avatar name={form.name} src={form.image} size="xl" className="w-full h-full" />
+                </div>
+                <button className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-brew-yellow border-2 border-brew-text flex items-center justify-center shadow-[2px_2px_0px_0px_currentColor] hover:scale-110 transition-transform">
+                  <Camera size={18} strokeWidth={3} />
+                </button>
+              </div>
+              <div className="mb-4">
+                <h3 className="font-inter font-black text-xl uppercase tracking-tight mb-1 leading-none">Visual Identity</h3>
+                <p className="font-inter font-bold text-xs opacity-40 uppercase tracking-widest leading-none">Your avatar and cover art.</p>
+              </div>
             </div>
-            <p className="font-inter font-black text-sm uppercase tracking-widest text-brew-text pr-4">
-              Settings saved!
-            </p>
-            <button
-              onClick={() => setShowToast(false)}
-              className="hover:opacity-60 transition-opacity"
-            >
-              <X size={20} strokeWidth={4} className="text-brew-text" />
-            </button>
+          </div>
+
+          {/* Info Card */}
+          <div className="bg-white border-4 border-brew-text rounded-[32px] p-8 shadow-[8px_8px_0px_0px_currentColor] space-y-8">
+            <h3 className="font-inter font-black text-lg uppercase tracking-widest border-b-4 border-brew-text pb-2 inline-block">Basic Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Display Name</label>
+                <input name="name" type="text" value={form.name} onChange={handleChange} className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all" />
+              </div>
+              <div>
+                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Creative Category</label>
+                <div className="relative">
+                  <select name="category" value={form.category} onChange={handleChange} className="w-full appearance-none px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-black text-[11px] uppercase tracking-widest focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] cursor-pointer">
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none font-black text-[10px]">↓</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Bio</label>
+              <textarea name="bio" value={form.bio} onChange={handleChange} rows={4} className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all resize-none" />
+            </div>
+
+            <div>
+              <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Personal URL</label>
+              <div className="flex items-stretch border-2 border-brew-text rounded-2xl overflow-hidden bg-[#fffdf0] focus-within:shadow-[4px_4px_0px_0px_currentColor] transition-all">
+                <span className="flex items-center px-4 py-3 bg-brew-yellow border-r-2 border-brew-text font-inter font-black text-xs uppercase tracking-widest">brewme.com/</span>
+                <input name="slug" value={form.slug} onChange={handleChange} className="flex-1 min-w-0 px-4 py-3 bg-transparent font-inter font-black text-sm outline-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Funding Goal Card */}
+          <div className="bg-white border-4 border-brew-text rounded-[32px] p-8 shadow-[8px_8px_0px_0px_currentColor] space-y-6">
+            <h3 className="font-inter font-black text-lg uppercase tracking-widest border-b-4 border-brew-text pb-2 inline-block mb-4">Funding Goal</h3>
+            <p className="font-inter font-bold text-[10px] text-brew-text/40 uppercase tracking-widest leading-none mb-4">Set a target for your community to rally behind.</p>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Goal Title</label>
+                <input name="goal_title" type="text" value={form.goal_title} onChange={handleChange} placeholder="e.g. New Camera Lens" className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all" />
+              </div>
+              <div>
+                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Target Amount ($)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-inter font-black text-lg">$</span>
+                  <input name="goal_amount" type="number" value={form.goal_amount} onChange={handleChange} className="w-full pl-10 pr-4 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-black text-xl focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Right Column: Payouts & Preferences */}
+        <div className="lg:col-span-4 space-y-8">
+          
+          {/* Payouts Card */}
+          <div className="bg-white border-4 border-brew-text rounded-[32px] p-6 shadow-[6px_6px_0px_0px_currentColor]">
+            <h3 className="font-inter font-black text-xs uppercase tracking-[0.3em] mb-6 opacity-40 flex items-center gap-2 leading-none"><CreditCard size={14} /> Payouts</h3>
+            <div className="bg-blue-50 border-2 border-brew-text rounded-2xl p-5 shadow-[3px_3px_0px_0px_currentColor]">
+              <p className="font-inter font-black text-xs uppercase tracking-widest mb-1 leading-none">Stripe Connected</p>
+              <p className="font-inter font-bold text-[10px] opacity-40 uppercase tracking-[0.2em] mb-4">•••• 4242</p>
+              <button className="w-full py-3 bg-brew-text text-white border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">Manage Stripe</button>
+            </div>
+          </div>
+
+          {/* Preferences Card */}
+          <div className="bg-white border-4 border-brew-text rounded-[32px] p-6 shadow-[6px_6px_0px_0px_currentColor] space-y-6">
+            <h3 className="font-inter font-black text-xs uppercase tracking-[0.3em] mb-2 opacity-40 flex items-center gap-2 leading-none"><Bell size={14} /> Notifications</h3>
+            
+            {["newSupporter", "newMessage", "weeklyReport"].map((key) => (
+              <div key={key} className="flex items-center justify-between gap-4">
+                <span className="font-inter font-black text-[10px] uppercase tracking-widest opacity-70 leading-none">{key.replace(/([A-Z])/g, ' $1')}</span>
+                <button
+                  onClick={() => handleToggle(key)}
+                  className={`relative w-12 h-7 rounded-full border-2 border-brew-text transition-colors duration-200 cursor-pointer shadow-[2px_2px_0px_0px_currentColor]
+                    ${notifications[key] ? "bg-brew-yellow" : "bg-[#fffdf0]"}`}
+                >
+                  <div className={`absolute top-0.5 bottom-0.5 w-5 border-2 border-brew-text rounded-full bg-white transition-transform duration-200 ${notifications[key] ? "translate-x-5" : "translate-x-0.5"}`} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </div>
+
+      {showToast && (
+        <Toast
+          message="Settings saved successfully!"
+          type="success"
+          onClose={() => setShowToast(null)}
+        />
       )}
     </div>
   );

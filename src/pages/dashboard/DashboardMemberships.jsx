@@ -1,189 +1,297 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
 import Badge from "../../components/Badge";
-import { Crown, Users, Check, Plus, Edit2 } from "lucide-react";
-
-const initialTiers = [
-  {
-    name: "Coffee Supporter",
-    price: "$5/mo",
-    subscribers: 89,
-    perks: [
-      "Access to supporters feed",
-      "Name in supporter wall",
-      "Monthly newsletter",
-    ],
-    color: "bg-brew-yellow-light",
-  },
-  {
-    name: "Gold Member",
-    price: "$15/mo",
-    subscribers: 34,
-    perks: [
-      "All Coffee Supporter perks",
-      "Exclusive posts & downloads",
-      "Monthly Q&A access",
-      "Early content access",
-    ],
-    color: "bg-brew-yellow/10",
-  },
-  {
-    name: "Platinum Patron",
-    price: "$50/mo",
-    subscribers: 8,
-    perks: [
-      "All Gold Member perks",
-      "1-on-1 monthly call",
-      "Custom illustration request",
-      "Behind-the-scenes access",
-      "Credits in all works",
-    ],
-    color: "bg-brew-yellow/20",
-  },
-];
+import Toast from "../../components/Toast";
+import Skeleton from "../../components/Skeleton";
+import { Crown, Users, Check, Plus, Edit2, Loader2, Sparkles, X, DollarSign, ListChecks } from "lucide-react";
+import { getDashboardMemberships, createMembershipTier } from "../../lib/api";
 
 export default function DashboardMemberships() {
-  const [tiers] = useState(initialTiers);
+  const [tiers, setTiers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const [tierForm, setTierForm] = useState({ name: "", price: "", perks: "" });
+
+  useEffect(() => {
+    async function loadMemberships() {
+      try {
+        const data = await getDashboardMemberships();
+        setTiers(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to load memberships:", err);
+      } finally {
+        setTimeout(() => setLoading(false), 600);
+      }
+    }
+    loadMemberships();
+  }, []);
+
+  const handleCreateTier = async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+
+    if (!tierForm.name.trim() || !tierForm.price || !tierForm.perks.trim()) {
+      setToast({ type: "error", message: "Please fill in all fields." });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const perksArray = tierForm.perks.split("\n").filter(p => p.trim() !== "");
+      const newTier = await createMembershipTier({
+        name: tierForm.name,
+        price: parseFloat(tierForm.price),
+        perks: perksArray,
+      });
+
+      setTiers([...tiers, newTier]);
+      setTierForm({ name: "", price: "", perks: "" });
+      setShowModal(false);
+      setToast({ type: "success", message: "Membership tier created!" });
+    } catch (err) {
+      setToast({ type: "error", message: "Failed to create tier." });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const totalMembers = tiers.reduce((sum, t) => sum + (t.subscriber_count || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="animate-fade-up">
+        <div className="mb-10 flex justify-between items-end">
+          <div className="space-y-2">
+            <Skeleton className="w-20 h-6 rounded-full" />
+            <Skeleton className="w-48 h-10" />
+          </div>
+          <Skeleton className="w-32 h-12" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[1, 2].map(i => <Skeleton key={i} className="h-80" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      {/* Page Header & Primary Action */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12 animate-fade-up">
-        <div>
-          <div className="inline-block mb-3 px-4 py-1.5 border-2 border-brew-text bg-brew-yellow font-inter font-black text-xs uppercase tracking-widest rounded-full shadow-[2px_2px_0px_0px_currentColor] -rotate-1">
-            Community
+    <>
+      <div className="animate-fade-up text-brew-text">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
+          <div>
+            <div className="inline-block mb-2 px-3 py-1 border-2 border-brew-text bg-brew-yellow font-inter font-black text-[10px] uppercase tracking-widest rounded-full shadow-[2px_2px_0px_0px_currentColor] -rotate-1">
+              Community
+            </div>
+            <h1 className="font-space font-black text-3xl md:text-4xl uppercase tracking-tight mb-1 leading-none">
+              Memberships
+            </h1>
+            <p className="font-inter font-bold text-sm opacity-60">
+              Manage your subscription levels and perks.
+            </p>
           </div>
-          <h1 className="font-inter font-black text-4xl md:text-5xl text-brew-text uppercase tracking-tight mb-2">
-            Memberships
-          </h1>
-          <p className="font-inter font-bold text-lg text-brew-text/70">
-            Manage your subscription tiers and exclusive perks.
-          </p>
+
+          {tiers.length < 3 && (
+            <button 
+              onClick={() => setShowModal(true)}
+              className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-brew-text bg-brew-text text-[#fffdf0] font-inter font-black text-xs uppercase tracking-widest shadow-[3px_3px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all rounded-xl w-full sm:w-auto shrink-0 active-haptic"
+            >
+              <Plus size={16} strokeWidth={4} className="text-brew-yellow" />
+              Add Tier
+            </button>
+          )}
         </div>
 
-        {tiers.length < 3 && (
-          <button className="flex items-center justify-center gap-2 px-6 py-4 border-4 border-brew-text bg-brew-text text-[#fffdf0] font-inter font-black text-sm uppercase tracking-widest shadow-[4px_4px_0px_0px_#F5C518] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#F5C518] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all rounded-xl w-full sm:w-auto">
-            <Plus size={18} strokeWidth={4} className="text-brew-yellow" /> Add
-            Tier
-          </button>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          {[
+            { label: "Total Members", value: totalMembers.toString(), icon: Users },
+            { label: "MRR", value: `$${tiers.reduce((sum, t) => sum + (t.subscriber_count * t.price || 0), 0).toFixed(2)}`, icon: Crown },
+            { label: "Active Tiers", value: tiers.length.toString(), icon: Crown },
+          ].map((stat, i) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={i}
+                className="bg-white border-2 border-brew-text p-5 rounded-2xl shadow-[4px_4px_0px_0px_currentColor] flex flex-col hover-lift transition-transform"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg border-2 border-brew-text bg-brew-yellow-light flex items-center justify-center shadow-[2px_2px_0px_0px_currentColor]">
+                    <Icon size={18} strokeWidth={3} />
+                  </div>
+                  <p className="font-inter font-black text-[10px] opacity-40 uppercase tracking-widest leading-tight">
+                    {stat.label}
+                  </p>
+                </div>
+                <p className="font-space font-black text-3xl tracking-tighter mt-auto leading-none uppercase">
+                  {stat.value}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Tier Cards Grid */}
+        {tiers.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 mb-12 p-1">
+            {tiers.map((tier, i) => (
+              <div
+                key={tier.id || i}
+                className="bg-[#fffdf0] border-4 border-brew-text rounded-[28px] shadow-[8px_8px_0px_0px_currentColor] flex flex-col transition-all duration-200 hover:-translate-y-1 w-full min-w-0 overflow-hidden active-haptic"
+              >
+                <div className="bg-brew-yellow border-b-4 border-brew-text p-6 flex items-start justify-between">
+                  <div className="min-w-0">
+                    <h3 className="font-space font-black text-xl uppercase tracking-tight mb-2 leading-none truncate">
+                      {tier.name}
+                    </h3>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border-2 border-brew-text font-inter font-black text-[9px] uppercase tracking-widest shadow-[1px_1px_0px_0px_currentColor] rounded-full">
+                      <Users size={10} strokeWidth={3} /> {tier.subscriber_count} Members
+                    </span>
+                  </div>
+                  <button className="w-8 h-8 flex items-center justify-center border-2 border-brew-text bg-white rounded-lg shadow-[2px_2px_0px_0px_currentColor] hover:translate-x-[1px] hover:translate-y-[1px] active:shadow-none transition-all shrink-0">
+                    <Edit2 size={14} strokeWidth={3} />
+                  </button>
+                </div>
+
+                <div className="p-6 flex flex-col flex-grow bg-white rounded-b-[24px]">
+                  <div className="mb-8">
+                    <p className="font-space font-black text-4xl tracking-tighter leading-none">
+                      ${tier.price}
+                    </p>
+                    <p className="font-inter font-bold text-[10px] text-brew-text/30 uppercase tracking-widest mt-2">
+                      Per Month
+                    </p>
+                  </div>
+
+                  <div className="border-t-2 border-dashed border-brew-text/10 pt-6 flex-grow">
+                    <ul className="space-y-3">
+                      {tier.perks?.map((perk, j) => (
+                        <li key={j} className="flex items-start gap-3 font-inter font-bold text-xs text-brew-text/70 leading-relaxed">
+                          <div className="w-5 h-5 rounded bg-brew-yellow border border-brew-text flex items-center justify-center shrink-0 mt-0.5 shadow-[1px_1px_0px_0px_currentColor]">
+                            <Check size={12} strokeWidth={5} />
+                          </div>
+                          {perk}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-12 text-center bg-white border-4 border-dashed border-brew-text/10 p-16 rounded-[48px] max-w-2xl mx-auto shadow-[12px_12px_0px_0px_rgba(0,0,0,0.03)]">
+            <div className="w-20 h-20 bg-brew-yellow/10 border-2 border-dashed border-brew-yellow/40 rounded-[32px] flex items-center justify-center mx-auto mb-8 -rotate-6">
+              <Sparkles size={40} className="text-brew-yellow" strokeWidth={2.5} />
+            </div>
+            <h3 className="font-space font-black text-3xl text-brew-text uppercase tracking-tight mb-4">Launch your club</h3>
+            <p className="font-inter font-bold text-base text-brew-text/40 uppercase tracking-widest leading-relaxed mb-10 max-w-sm mx-auto">
+              Create your first membership tier to start earning recurring income from your fans!
+            </p>
+            <button 
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-3 px-10 py-5 bg-brew-yellow border-4 border-brew-text rounded-[24px] font-space font-black text-base uppercase tracking-widest shadow-[8px_8px_0px_0px_currentColor] hover:translate-x-1 hover:translate-y-1 active:shadow-none transition-all active-haptic"
+            >
+              <Plus size={20} strokeWidth={4} /> Create Tier
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
-        {[
-          {
-            label: "Total Members",
-            value: tiers.reduce((sum, t) => sum + t.subscribers, 0).toString(),
-            icon: Users,
-          },
-          { label: "Monthly Revenue", value: "$1,465.00", icon: Crown },
-          {
-            label: "Active Tiers",
-            value: tiers.length.toString(),
-            icon: Crown,
-          },
-        ].map((stat, i) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={i}
-              className="bg-white border-4 border-brew-text p-6 rounded-2xl shadow-[6px_6px_0px_0px_currentColor] transition-transform hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_currentColor] animate-fade-up flex flex-col"
-              style={{ animationDelay: `${i * 80}ms` }}
+      {/* Add Tier Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-brew-text/60 backdrop-blur-xl animate-fade-in"
+            onClick={() => !submitting && setShowModal(false)}
+          />
+          <div className="relative w-full max-w-md bg-white border-4 border-brew-text rounded-[32px] p-8 shadow-[12px_12px_0px_0px_currentColor] animate-slide-in-up text-brew-text">
+            <button 
+              onClick={() => setShowModal(false)}
+              className="absolute top-6 right-6 p-2 hover:bg-brew-yellow-light rounded-full transition-colors text-brew-text"
             >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-xl border-2 border-brew-text bg-brew-yellow-light flex items-center justify-center shadow-[3px_3px_0px_0px_currentColor]">
-                  <Icon size={20} strokeWidth={3} className="text-brew-text" />
-                </div>
-                <p className="font-inter font-black text-xs text-brew-text/60 uppercase tracking-widest leading-tight">
-                  {stat.label}
-                </p>
-              </div>
-              <p className="font-inter font-black text-4xl text-brew-text tracking-tighter mt-auto">
-                {stat.value}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+              <X size={20} strokeWidth={3} />
+            </button>
 
-      {/* Tier Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {tiers.map((tier, i) => (
-          <div
-            key={i}
-            className="bg-[#fffdf0] border-4 border-brew-text rounded-[24px] shadow-[8px_8px_0px_0px_currentColor] flex flex-col transition-transform duration-200 hover:-translate-y-2 hover:shadow-[10px_10px_0px_0px_currentColor] animate-fade-up overflow-hidden"
-            style={{ animationDelay: `${i * 100}ms` }}
-          >
-            {/* Header Block */}
-            <div className="bg-brew-yellow border-b-4 border-brew-text p-6 flex items-start justify-between">
+            <h3 className="font-space font-black text-2xl uppercase tracking-tight mb-6 flex items-center gap-3">
+              New Tier <Crown size={24} className="text-brew-yellow" />
+            </h3>
+            
+            <form onSubmit={handleCreateTier} className="space-y-6">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Crown size={18} strokeWidth={3} className="text-brew-text" />
-                  <h3 className="font-inter font-black text-xl text-brew-text uppercase tracking-tight">
-                    {tier.name}
-                  </h3>
-                </div>
-                <div className="flex items-center gap-1.5 mt-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border-2 border-brew-text font-inter font-black text-[10px] text-brew-text uppercase tracking-widest shadow-[2px_2px_0px_0px_currentColor] rounded-full">
-                    <Users size={12} strokeWidth={3} /> {tier.subscribers} Subs
-                  </span>
-                </div>
-              </div>
-              <button className="w-10 h-10 flex items-center justify-center border-2 border-brew-text bg-white rounded-xl shadow-[3px_3px_0px_0px_currentColor] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0px_0px_currentColor] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all shrink-0">
-                <Edit2 size={16} strokeWidth={3} className="text-brew-text" />
-              </button>
-            </div>
-
-            {/* Body Block */}
-            <div className="p-6 flex flex-col flex-grow bg-white">
-              <div className="mb-6">
-                <p className="font-inter font-black text-5xl text-brew-text tracking-tighter">
-                  {tier.price}
-                </p>
-                <p className="font-inter font-bold text-sm text-brew-text/50 uppercase tracking-widest mt-1">
-                  Per Month
-                </p>
+                <label className="block font-inter font-black text-xs uppercase tracking-widest mb-2 opacity-60">Tier Name</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Early Bird"
+                  value={tierForm.name}
+                  onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
+                  className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-black text-lg focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all"
+                />
               </div>
 
-              <div className="border-t-4 border-dashed border-brew-text/20 pt-6 flex-grow">
-                <p className="font-inter font-black text-xs text-brew-text uppercase tracking-widest mb-4">
-                  Included Perks
-                </p>
-                <ul className="space-y-4 list-none p-0 m-0">
-                  {tier.perks.map((perk, j) => (
-                    <li
-                      key={j}
-                      className="flex items-start gap-3 font-inter font-bold text-sm text-brew-text/80 leading-relaxed"
-                    >
-                      <div className="w-6 h-6 rounded-md border-2 border-brew-text bg-brew-yellow flex items-center justify-center shrink-0 mt-0.5 shadow-[1px_1px_0px_0px_currentColor]">
-                        <Check
-                          size={14}
-                          strokeWidth={4}
-                          className="text-brew-text"
-                        />
-                      </div>
-                      {perk}
-                    </li>
-                  ))}
-                </ul>
+              <div>
+                <label className="block font-inter font-black text-xs uppercase tracking-widest mb-2 opacity-60">Monthly Price</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-inter font-black text-lg">$</span>
+                  <input 
+                    type="number"
+                    step="1"
+                    placeholder="5"
+                    value={tierForm.price}
+                    onChange={(e) => setTierForm({ ...tierForm, price: e.target.value })}
+                    className="w-full pl-10 pr-4 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-black text-xl focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all"
+                  />
+                </div>
               </div>
-            </div>
+
+              <div>
+                <label className="block font-inter font-black text-xs uppercase tracking-widest mb-2 opacity-60 text-pretty">Tier Perks (One per line)</label>
+                <textarea 
+                  rows={4}
+                  placeholder="Exclusive content&#10;Supporter badge&#10;Behind the scenes"
+                  value={tierForm.perks}
+                  onChange={(e) => setTierForm({ ...tierForm, perks: e.target.value })}
+                  className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all resize-none"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  disabled={submitting}
+                  className="flex-1 px-6 py-4 border-2 border-brew-text bg-white font-inter font-black text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-6 py-4 border-2 border-brew-text bg-brew-text text-white font-inter font-black text-xs uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {submitting ? <Loader2 size={14} className="animate-spin text-brew-yellow" /> : <Plus size={14} strokeWidth={4} />}
+                  {submitting ? "Creating..." : "Create Tier"}
+                </button>
+              </div>
+            </form>
           </div>
-        ))}
-      </div>
-
-      {/* Empty state for adding more tiers */}
-      {tiers.length < 3 && (
-        <div className="mt-12 text-center bg-white border-4 border-dashed border-brew-text/20 p-8 rounded-[24px] max-w-2xl mx-auto">
-          <p className="font-inter font-bold text-lg text-brew-text/70">
-            You can have up to{" "}
-            <span className="text-brew-text font-black">3</span> membership
-            tiers. Add another to offer more value to your biggest fans.
-          </p>
         </div>
       )}
-    </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </>
   );
 }
