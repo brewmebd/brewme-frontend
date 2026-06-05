@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import Card from "../../components/Card";
 import Badge from "../../components/Badge";
+import { getProfile } from "../../lib/api";
 import {
   DollarSign,
   Users,
@@ -84,6 +86,16 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function DashboardOverview() {
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    getProfile()
+      .then((data) => {
+        if (data.status) setProfile(data.profile_info);
+      })
+      .catch(console.error);
+  }, []);
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
       {/* Page Header */}
@@ -96,8 +108,8 @@ export default function DashboardOverview() {
             Dashboard
           </h1>
         </div>
-        <p className="font-inter font-bold text-brew-text/70 mb-2">
-          Welcome back! Here's your performance.
+        <p className="font-inter font-bold text-brew-text/70 mb-2 text-balance">
+          Welcome back{profile?.creator_name ? `, ${profile.creator_name}` : "" }! Here's your performance.
         </p>
       </div>
 

@@ -73,6 +73,13 @@ export const apiFetch = async (path, options = {}) => {
   return res;
 };
 
+// Get the authenticated user's profile information.
+export const getProfile = async () => {
+  const res = await apiFetch("/profile/");
+  if (!res.ok) throw new Error("Failed to fetch profile");
+  return res.json();
+};
+
 // Tell the backend to invalidate the session, then clear the local token.
 // We clear locally even if the network call fails, so logout always "works".
 export const logout = async () => {

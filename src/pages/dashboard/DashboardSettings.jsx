@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import Avatar from "../../components/Avatar";
 import Toast from "../../components/Toast";
-import { Camera, Link2, Bell, CreditCard, Save } from "lucide-react";
+import { Camera, Link2, Bell, CreditCard, Save, Check, X, Loader2 } from "lucide-react";
+import { getProfile, API_ORIGIN } from "../../lib/api";
 
 export default function DashboardSettings() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [form, setForm] = useState({
-    name: "Sarah Chen",
-    bio: "Digital artist creating illustrations, tutorials, and design resources. I share weekly art process videos and exclusive assets for my supporters.",
-    slug: "sarahchen",
-    email: "sarah@example.com",
+    name: "",
+    bio: "",
+    slug: "",
+    email: "",
+    image: "",
   });
 
   const [notifications, setNotifications] = useState({
@@ -23,6 +27,30 @@ export default function DashboardSettings() {
 
   const [showToast, setShowToast] = useState(false);
 
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const data = await getProfile();
+        if (data.status && data.profile_info) {
+          const info = data.profile_info;
+          setForm({
+            name: info.creator_name || "",
+            bio: info.creator_bio || "",
+            slug: info.creator_url || "",
+            email: info.creator_email || "",
+            image: info.creator_image ? `${API_ORIGIN}${info.creator_image}` : "",
+          });
+        }
+      } catch (err) {
+        setError("Failed to load profile settings.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProfile();
+  }, []);
+
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -33,6 +61,15 @@ export default function DashboardSettings() {
   const handleSave = () => {
     setShowToast(true);
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 size={48} className="text-brew-yellow animate-spin" strokeWidth={3} />
+        <p className="font-inter font-black text-brew-text uppercase tracking-widest text-sm">Loading Settings...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-10">
@@ -51,6 +88,13 @@ export default function DashboardSettings() {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-50 border-4 border-brew-text p-4 rounded-2xl shadow-[6px_6px_0px_0px_currentColor] flex items-center gap-3">
+          <X className="text-red-500" size={24} strokeWidth={3} />
+          <p className="font-inter font-bold text-brew-text">{error}</p>
+        </div>
+      )}
+
       {/* Profile Photo */}
       <div className="bg-white border-4 border-brew-text rounded-[24px] p-6 md:p-8 shadow-[8px_8px_0px_0px_currentColor] animate-fade-up delay-100">
         <h3 className="font-inter font-black text-xl text-brew-text uppercase tracking-wider mb-6 border-b-4 border-brew-text pb-2 inline-block">
@@ -60,7 +104,7 @@ export default function DashboardSettings() {
           <div className="relative group cursor-pointer">
             {/* Brutalist Avatar */}
             <div className="w-24 h-24 rounded-full border-4 border-brew-text bg-brew-yellow-light flex items-center justify-center font-black text-3xl text-brew-text shadow-[4px_4px_0px_0px_currentColor] overflow-hidden">
-              SC
+              <Avatar name={form.name} src={form.image} size="xl" className="w-full h-full" />
             </div>
             <button className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-brew-yellow flex items-center justify-center border-2 border-brew-text shadow-[2px_2px_0px_0px_currentColor] group-hover:scale-110 group-hover:rotate-12 transition-all">
               <Camera size={18} strokeWidth={3} className="text-brew-text" />

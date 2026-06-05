@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { logout } from "../lib/api";
+import { logout, getProfile, API_ORIGIN } from "../lib/api";
+import Avatar from "./Avatar";
 import {
   LayoutDashboard,
   Users,
@@ -12,7 +13,7 @@ import {
   X,
   Coffee,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const sidebarLinks = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Overview", exact: true },
@@ -27,6 +28,15 @@ export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    getProfile()
+      .then((data) => {
+        if (data.status) setProfile(data.profile_info);
+      })
+      .catch(console.error);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -82,15 +92,46 @@ export default function DashboardLayout() {
           })}
         </nav>
 
-        <div className="p-4 border-t-4 border-brew-text bg-white">
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center gap-3 w-full px-4 py-3.5 rounded-xl border-2 border-brew-text bg-[#fffdf0] text-sm font-black uppercase tracking-widest text-brew-text hover:bg-brew-yellow hover:shadow-[4px_4px_0px_0px_currentColor] hover:-translate-y-1 transition-all cursor-pointer"
-          >
-            <LogOut size={18} strokeWidth={3} />
-            Log out
-          </button>
-        </div>
+        {/* User Profile Summary */}
+        {profile && (
+          <div className="p-4 border-t-4 border-brew-text bg-[#fffdf0]/50">
+            <div className="flex items-center gap-3 px-2 py-3 bg-white border-2 border-brew-text rounded-2xl shadow-[4px_4px_0px_0px_currentColor] mb-4">
+              <Avatar
+                name={profile.creator_name}
+                src={profile.creator_image ? `${API_ORIGIN}${profile.creator_image}` : ""}
+                size="md"
+                className="border-2 border-brew-text shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="font-black text-sm text-brew-text truncate">
+                  {profile.creator_name}
+                </p>
+                <p className="font-bold text-[10px] text-brew-text/50 uppercase tracking-widest truncate">
+                  {profile.creator_email}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-3 w-full px-4 py-3.5 rounded-xl border-2 border-brew-text bg-white text-sm font-black uppercase tracking-widest text-brew-text hover:bg-brew-yellow hover:shadow-[4px_4px_0px_0px_currentColor] hover:-translate-y-1 transition-all cursor-pointer"
+            >
+              <LogOut size={18} strokeWidth={3} />
+              Log out
+            </button>
+          </div>
+        )}
+
+        {!profile && (
+          <div className="p-4 border-t-4 border-brew-text bg-white">
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-3 w-full px-4 py-3.5 rounded-xl border-2 border-brew-text bg-[#fffdf0] text-sm font-black uppercase tracking-widest text-brew-text hover:bg-brew-yellow hover:shadow-[4px_4px_0px_0px_currentColor] hover:-translate-y-1 transition-all cursor-pointer"
+            >
+              <LogOut size={18} strokeWidth={3} />
+              Log out
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Mobile Top Bar */}

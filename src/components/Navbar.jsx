@@ -1,14 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { isAuthenticated } from "../lib/api";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const loggedIn = isAuthenticated();
 
   const links = [
     { to: "/explore", label: "Explore" },
-    { to: "/login", label: "Log in" },
+    loggedIn ? { to: "/dashboard", label: "Dashboard" } : { to: "/login", label: "Log in" },
   ];
 
   return (
@@ -44,14 +46,16 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <div className="ml-2">
-            <Link
-              to="/signup"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border-2 border-brew-text bg-brew-yellow px-6 py-2.5 font-inter text-sm font-black text-brew-text shadow-[3px_3px_0px_0px_currentColor] transition-all duration-150 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_currentColor] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-            >
-              Start your page
-            </Link>
-          </div>
+          {!loggedIn && (
+            <div className="ml-2">
+              <Link
+                to="/signup"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full border-2 border-brew-text bg-brew-yellow px-6 py-2.5 font-inter text-sm font-black text-brew-text shadow-[3px_3px_0px_0px_currentColor] transition-all duration-150 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_currentColor] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+              >
+                Start your page
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Mobile Hamburger */}
