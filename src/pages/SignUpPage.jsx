@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import Toast from "../components/Toast";
-import { API_BASE } from "../lib/api";
+import { API_BASE, getCategories } from "../lib/api";
 import { ArrowRight, Check, X, Loader2 } from "lucide-react";
 
 export default function SignUpPage() {
@@ -16,12 +16,27 @@ export default function SignUpPage() {
     bio: "",
     category: "",
   });
+  const [categories, setCategories] = useState([]);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [urlStatus, setUrlStatus] = useState(null); // null, 'checking', 'available', 'taken', 'too-short'
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const data = await getCategories();
+        if (data.status && data.category) {
+          setCategories(data.category);
+        }
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+    };
+    fetchCats();
+  }, []);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -87,6 +102,7 @@ export default function SignUpPage() {
     if (form.password !== form.confirmPassword)
       clientErrors.confirmPassword = "Passwords do not match";
     if (!form.url.trim()) clientErrors.url = "Page URL is required";
+    if (!form.category) clientErrors.category = "Category is required";
     if (Object.keys(clientErrors).length > 0) {
       setErrors(clientErrors);
       return;
@@ -103,7 +119,7 @@ export default function SignUpPage() {
       data.append("confirmPassword", form.confirmPassword);
       data.append("url", form.url);
       data.append("bio", form.bio);
-      data.append("category", form.category);
+      data.append("category_id", form.category);
       if (avatarFile) data.append("avatar", avatarFile);
 
       const res = await fetch(`${API_BASE}/auth/register`, {
@@ -429,19 +445,17 @@ export default function SignUpPage() {
                 className="w-full px-4 py-3 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-inter font-medium text-brew-text focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] focus:-translate-y-px transition-all duration-200"
               >
                 <option value="">Select a category</option>
-                <option value="digital-art">Digital Art</option>
-                <option value="music">Music</option>
-                <option value="writing">Writing</option>
-                <option value="podcasting">Podcasting</option>
-                <option value="open-source">Open Source</option>
-                <option value="education">Education</option>
-                <option value="gaming">Gaming</option>
-                <option value="photography">Photography</option>
-                <option value="film">Film</option>
-                <option value="cooking">Cooking</option>
-                <option value="tech">Tech</option>
-                <option value="fitness">Fitness</option>
+                {categories.map((cat) => (
+                  <option key={cat.category_id} value={cat.category_id}>
+                    {cat.category_name}
+                  </option>
+                ))}
               </select>
+              {errors.category && (
+                <p className="mt-2 text-[11px] font-inter font-black text-red-500 uppercase tracking-widest">
+                  {errors.category}
+                </p>
+              )}
             </div>
 
             <Button

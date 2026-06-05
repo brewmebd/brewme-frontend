@@ -262,3 +262,10 @@ export const logout = async () => {
     clearToken();
   }
 };
+
+// Get the list of all available creator categories.
+export const getCategories = async () => {
+  const res = await fetch(`${API_BASE}/category/`);
+  if (!res.ok) throw new Error("Failed to fetch categories");
+  return res.json();
+};
