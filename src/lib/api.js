@@ -58,9 +58,20 @@ export const authHeaders = () => {
 // handling: any 401 means the token is gone or rejected, so we log out locally
 // and bounce to /login. Use this for all authenticated API calls.
 export const apiFetch = async (path, options = {}) => {
+  const headers = {
+    ...authHeaders(),
+    ...(options.headers || {}),
+  };
+
+  // Automatically set Content-Type to application/json if body is present
+  // and it's not already set.
+  if (options.body && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: { ...authHeaders(), ...(options.headers || {}) },
+    headers,
   });
 
   if (res.status === 401) {
@@ -84,50 +95,35 @@ export const getProfile = async () => {
 
 // Get summary stats for the dashboard overview.
 export const getDashboardStats = async () => {
-  try {
-    const res = await apiFetch("/dashboard/stats");
-    if (!res.ok) throw new Error();
-    return res.json();
-  } catch {
-    // Fallback simulated data
-    return {
-      status: true,
-      total_earned: "$2,847.50",
-      earnings_change: "+12.5%",
-      monthly_earned: "$486.00",
-      monthly_change: "+8.3%",
-      total_supporters: "1,247",
-      supporters_change: "+23",
-      total_posts: "34",
-      posts_change: "+3",
-      chart_data: [
-        { month: "Jan", earnings: 180 },
-        { month: "Feb", earnings: 220 },
-        { month: "Mar", earnings: 310 },
-        { month: "Apr", earnings: 280 },
-        { month: "May", earnings: 420 },
-        { month: "Jun", earnings: 380 },
-        { month: "Jul", earnings: 450 },
-        { month: "Aug", earnings: 520 },
-        { month: "Sep", earnings: 486 },
-      ],
-    };
+  const res = await apiFetch("/dashboard/stats");
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch dashboard stats");
   }
+  return res.json();
 };
 
 // Get the list of supporters for the authenticated creator.
 export const getDashboardSupporters = async (limit = 20) => {
-  try {
-    const res = await apiFetch(`/dashboard/supporters?limit=${limit}`);
-    if (!res.ok) throw new Error();
-    return res.json();
-  } catch {
-    return [
-      { supporter_name: "Emily Rodriguez", supporter_message: "Love your work! 🎨", total_amount: 15, supporter_cups: 3, created_at: "2026-04-22T10:00:00Z", support_type: "coffee", support_replied: false },
-      { supporter_name: "Marcus Thompson", supporter_message: "Your tutorials are the best.", total_amount: 5, supporter_cups: 1, created_at: "2026-04-22T08:00:00Z", support_type: "coffee", support_replied: true },
-      { supporter_name: "Anonymous", supporter_message: "", total_amount: 25, supporter_cups: 5, created_at: "2026-04-21T15:00:00Z", support_type: "coffee", support_replied: false },
-    ];
+  const res = await apiFetch(`/dashboard/supporters?limit=${limit}`);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch dashboard supporters");
   }
+  return res.json();
+};
+
+// Reply to a supporter message.
+export const replyToSupporter = async (supporterId, message) => {
+  const res = await apiFetch(`/dashboard/supporters/${supporterId}/reply`, {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to send reply");
+  }
+  return res.json();
 };
 
 // Get the list of posts for the authenticated creator.

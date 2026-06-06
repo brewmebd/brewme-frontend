@@ -6,7 +6,7 @@ import Badge from "../../components/Badge";
 import Toast from "../../components/Toast";
 import Skeleton from "../../components/Skeleton";
 import { MessageCircle, Search, Loader2, Coffee, Send, X, Check, Filter, SlidersHorizontal, ArrowRight, Sparkles } from "lucide-react";
-import { getDashboardSupporters } from "../../lib/api";
+import { getDashboardSupporters, replyToSupporter } from "../../lib/api";
 
 function getRelativeTime(dateString) {
   if (!dateString) return "";
@@ -54,17 +54,21 @@ export default function DashboardSupporters() {
     if (!replyText.trim() || submittingReply) return;
     setSubmittingReply(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const response = await replyToSupporter(supporterId, replyText);
+      
       setSupporters(prev => prev.map(s => 
-        (s.id === supporterId || supporters.indexOf(s) === supporterId) 
-          ? { ...s, support_replied: true, creator_reply: replyText } 
+        s.id === supporterId 
+          ? { ...s, support_replied: true, creator_reply: response.creator_reply || replyText } 
           : s
       ));
       setToast({ type: "success", message: "Reply sent!" });
       setReplyingTo(null);
       setReplyText("");
-    } catch { setToast({ type: "error", message: "Failed to send." }); }
-    finally { setSubmittingReply(false); }
+    } catch (err) { 
+      setToast({ type: "error", message: err.message || "Failed to send." }); 
+    } finally { 
+      setSubmittingReply(false); 
+    }
   };
 
   const filtered = supporters
@@ -166,7 +170,7 @@ export default function DashboardSupporters() {
       ) : (
         <div className="space-y-6">
           {filtered.map((s, i) => (
-            <div key={s.id || i} className={`bg-white border-4 border-brew-text rounded-[28px] p-6 md:p-8 shadow-[6px_6px_0px_0px_currentColor] transition-all hover:-translate-y-1 active-haptic ${replyingTo === (s.id || i) ? "ring-4 ring-brew-yellow ring-offset-2 shadow-none" : ""}`}>
+            <div key={s.id} className={`bg-white border-4 border-brew-text rounded-[28px] p-6 md:p-8 shadow-[6px_6px_0px_0px_currentColor] transition-all hover:-translate-y-1 active-haptic ${replyingTo === s.id ? "ring-4 ring-brew-yellow ring-offset-2 shadow-none" : ""}`}>
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 text-brew-text">
                 <div className="flex items-start gap-4 flex-1">
                   <div className="w-12 h-12 rounded-full border-2 border-brew-text bg-brew-yellow flex items-center justify-center font-black text-xl shrink-0 shadow-[2px_2px_0px_0px_currentColor]">{(s.supporter_name || "A").charAt(0)}</div>
@@ -187,18 +191,18 @@ export default function DashboardSupporters() {
                   </div>
                 </div>
                 {!s.support_replied && (
-                  <button onClick={() => setReplyingTo(replyingTo === (s.id || i) ? null : (s.id || i))} className={`inline-flex items-center justify-center gap-2 px-6 py-2.5 border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest transition-all ${replyingTo === (s.id || i) ? "bg-brew-text text-white shadow-none translate-x-[2px] translate-y-[2px]" : "bg-white text-brew-text shadow-[3px_3px_0px_0px_currentColor] hover:-translate-y-0.5"}`}>
-                    {replyingTo === (s.id || i) ? <X size={14} strokeWidth={3} /> : <MessageCircle size={14} strokeWidth={3} />}
-                    {replyingTo === (s.id || i) ? "Cancel" : "Reply"}
+                  <button onClick={() => setReplyingTo(replyingTo === s.id ? null : s.id)} className={`inline-flex items-center justify-center gap-2 px-6 py-2.5 border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest transition-all ${replyingTo === s.id ? "bg-brew-text text-white shadow-none translate-x-[2px] translate-y-[2px]" : "bg-white text-brew-text shadow-[3px_3px_0px_0px_currentColor] hover:-translate-y-0.5"}`}>
+                    {replyingTo === s.id ? <X size={14} strokeWidth={3} /> : <MessageCircle size={14} strokeWidth={3} />}
+                    {replyingTo === s.id ? "Cancel" : "Reply"}
                   </button>
                 )}
               </div>
-              {replyingTo === (s.id || i) && (
+              {replyingTo === s.id && (
                 <div className="mt-8 pt-8 border-t-2 border-dashed border-brew-text/10 animate-slide-in-up">
                   <div className="bg-[#fffdf0] border-2 border-brew-text rounded-2xl p-5 shadow-[4px_4px_0px_0px_currentColor]">
                     <textarea placeholder={`Say something nice...`} value={replyText} onChange={(e) => setReplyText(e.target.value)} rows={3} className="w-full bg-white border-2 border-brew-text rounded-xl p-4 font-inter font-bold text-sm text-brew-text focus:outline-none focus:shadow-[3px_3px_0px_0px_currentColor] transition-all resize-none" />
                     <div className="flex justify-end mt-4">
-                      <button onClick={() => handleReplySubmit(s.id || i)} disabled={!replyText.trim() || submittingReply} className="inline-flex items-center gap-2 px-8 py-3 border-2 border-brew-text bg-brew-yellow font-inter font-black text-xs uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_currentColor] active-haptic disabled:opacity-50">
+                      <button onClick={() => handleReplySubmit(s.id)} disabled={!replyText.trim() || submittingReply} className="inline-flex items-center gap-2 px-8 py-3 border-2 border-brew-text bg-brew-yellow font-inter font-black text-xs uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_currentColor] active-haptic disabled:opacity-50">
                         {submittingReply ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} strokeWidth={3} />}
                         {submittingReply ? "Sending..." : "Send Reply"}
                       </button>
