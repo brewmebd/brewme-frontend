@@ -265,3 +265,10 @@ export const getCategories = async () => {
   if (!res.ok) throw new Error("Failed to fetch categories");
   return res.json();
 };
+
+// Get every creator for the Explore/Discover directory.
+export const getDiscoverCreators = async () => {
+  const res = await fetch(`${API_BASE}/discover`);
+  if (!res.ok) throw new Error("Failed to fetch creators");
+  return res.json();
+};

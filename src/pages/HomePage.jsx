@@ -1,8 +1,11 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import Badge from "../components/Badge";
 import Avatar from "../components/Avatar";
+import Skeleton from "../components/Skeleton";
+import { API_ORIGIN, getDiscoverCreators } from "../lib/api";
 import {
   Coffee,
   Link2,
@@ -15,58 +18,6 @@ import {
   Check,
   ArrowRight,
 } from "lucide-react";
-
-/* ── Mock Data ── */
-const creators = [
-  {
-    name: "Sarah Chen",
-    category: "Digital Art",
-    supporters: 1247,
-    username: "sarahchen",
-  },
-  {
-    name: "Alex Rivera",
-    category: "Music",
-    supporters: 892,
-    username: "alexrivera",
-  },
-  {
-    name: "Jordan Park",
-    category: "Writing",
-    supporters: 634,
-    username: "jordanpark",
-  },
-  {
-    name: "Maya Johnson",
-    category: "Podcasting",
-    supporters: 2103,
-    username: "mayajohnson",
-  },
-  {
-    name: "Leo Tanaka",
-    category: "Open Source",
-    supporters: 1568,
-    username: "leotanaka",
-  },
-  {
-    name: "Priya Sharma",
-    category: "Education",
-    supporters: 945,
-    username: "priyasharma",
-  },
-  {
-    name: "Chris Lee",
-    category: "Gaming",
-    supporters: 3201,
-    username: "chrislee",
-  },
-  {
-    name: "Nina Costa",
-    category: "Photography",
-    supporters: 712,
-    username: "ninacosta",
-  },
-];
 
 const features = [
   {
@@ -113,6 +64,26 @@ const pricingPerks = [
 ];
 
 export default function HomePage() {
+  const [creators, setCreators] = useState([]);
+  const [creatorsLoading, setCreatorsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getDiscoverCreators();
+        if (!cancelled) setCreators(Array.isArray(data) ? data.slice(0, 8) : []);
+      } catch {
+        if (!cancelled) setCreators([]);
+      } finally {
+        if (!cancelled) setCreatorsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <>
       {/* ════════ HERO ════════ */}
@@ -334,33 +305,56 @@ export default function HomePage() {
               className="flex gap-6 overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide px-4 md:px-0"
               style={{ scrollbarWidth: "none" }}
             >
-              {creators.map((creator, i) => (
-                <Link
-                  to={`/${creator.username}`}
-                  key={i}
-                  className="snap-center shrink-0 no-underline group outline-none"
-                >
-                  <div className="w-64 bg-white border-2 border-brew-text p-6 rounded-3xl text-center shadow-[6px_6px_0px_0px_currentColor] transition-transform duration-200 group-hover:-translate-y-2 group-hover:shadow-[8px_8px_0px_0px_currentColor] group-focus-visible:-translate-y-2 group-focus-visible:ring-4 group-focus-visible:ring-brew-text">
-                    {/* Avatar Wrapper for hard borders */}
-                    <div className="w-20 h-20 mx-auto mb-4 rounded-full border-2 border-brew-text bg-brew-yellow-light shadow-[4px_4px_0px_0px_currentColor] flex items-center justify-center overflow-hidden">
-                      <Avatar
-                        name={creator.name}
-                        size="lg"
-                        className="w-full h-full object-cover"
+              {creatorsLoading
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="snap-center shrink-0 w-64 bg-white border-2 border-brew-text p-6 rounded-3xl text-center shadow-[6px_6px_0px_0px_currentColor]"
+                    >
+                      <Skeleton
+                        variant="circle"
+                        className="w-20 h-20 mx-auto mb-4"
                       />
+                      <Skeleton className="h-5 w-2/3 mx-auto mb-3" />
+                      <Skeleton className="h-5 w-1/3 mx-auto mb-3 rounded-full" />
+                      <Skeleton className="h-4 w-1/2 mx-auto" />
                     </div>
-                    <h4 className="font-inter font-black text-lg text-brew-text mb-2">
-                      {creator.name}
-                    </h4>
-                    <div className="inline-block border-2 border-brew-text bg-[#fffdf0] px-3 py-1 text-xs font-bold rounded-full mb-3 shadow-[2px_2px_0px_0px_currentColor]">
-                      {creator.category}
-                    </div>
-                    <p className="font-inter text-sm font-semibold text-brew-text/70 uppercase tracking-wide">
-                      {creator.supporters.toLocaleString()} supporters
-                    </p>
-                  </div>
-                </Link>
-              ))}
+                  ))
+                : creators.map((creator) => (
+                    <Link
+                      to={`/${creator.creator_username}`}
+                      key={creator.creator_id}
+                      className="snap-center shrink-0 no-underline group outline-none"
+                    >
+                      <div className="w-64 bg-white border-2 border-brew-text p-6 rounded-3xl text-center shadow-[6px_6px_0px_0px_currentColor] transition-transform duration-200 group-hover:-translate-y-2 group-hover:shadow-[8px_8px_0px_0px_currentColor] group-focus-visible:-translate-y-2 group-focus-visible:ring-4 group-focus-visible:ring-brew-text">
+                        {/* Avatar Wrapper for hard borders */}
+                        <div className="w-20 h-20 mx-auto mb-4 rounded-full border-2 border-brew-text bg-brew-yellow-light shadow-[4px_4px_0px_0px_currentColor] flex items-center justify-center overflow-hidden">
+                          <Avatar
+                            name={creator.creator_name}
+                            src={
+                              creator.creator_profile_picture
+                                ? `${API_ORIGIN}${creator.creator_profile_picture}`
+                                : ""
+                            }
+                            size="lg"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <h4 className="font-inter font-black text-lg text-brew-text mb-2">
+                          {creator.creator_name}
+                        </h4>
+                        {creator.creator_category && (
+                          <div className="inline-block border-2 border-brew-text bg-[#fffdf0] px-3 py-1 text-xs font-bold rounded-full mb-3 shadow-[2px_2px_0px_0px_currentColor]">
+                            {creator.creator_category}
+                          </div>
+                        )}
+                        <p className="font-inter text-sm font-semibold text-brew-text/70 uppercase tracking-wide">
+                          {(creator.total_supporters_cup || 0).toLocaleString()}{" "}
+                          cups
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
             </div>
           </div>
 

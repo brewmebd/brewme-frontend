@@ -77,6 +77,7 @@ export default function CreatorProfilePage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [showSticky, setShowSticky] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -124,6 +125,21 @@ export default function CreatorProfilePage() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [username]);
+
+  // Close the avatar lightbox on Escape, and lock body scroll while it's open.
+  useEffect(() => {
+    if (!showAvatarModal) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setShowAvatarModal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [showAvatarModal]);
 
   const totalAmount = useMemo(() => {
     const cups = customCups ? parseInt(customCups) || 0 : cupCount;
@@ -208,13 +224,20 @@ export default function CreatorProfilePage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 w-full relative z-20">
         <div className="flex flex-col items-center text-center -mt-16 md:-mt-20 mb-12">
-          <div className="w-32 h-32 md:w-36 md:h-36 rounded-full border-4 border-brew-text bg-white shadow-[6px_6px_0px_0px_currentColor] flex items-center justify-center overflow-hidden mb-6 ring-4 ring-[#fffdf0] hover-lift transition-transform">
-            {creator.creator_image ? (
+          {creator.creator_image ? (
+            <button
+              type="button"
+              onClick={() => setShowAvatarModal(true)}
+              aria-label="View profile picture"
+              className="w-32 h-32 md:w-36 md:h-36 rounded-full border-4 border-brew-text bg-white shadow-[6px_6px_0px_0px_currentColor] flex items-center justify-center overflow-hidden mb-6 ring-4 ring-[#fffdf0] hover-lift transition-transform cursor-pointer focus:outline-none focus-visible:ring-brew-yellow"
+            >
               <img src={`${API_ORIGIN}${creator.creator_image}`} alt={creator.creator_name} className="w-full h-full object-cover" />
-            ) : (
+            </button>
+          ) : (
+            <div className="w-32 h-32 md:w-36 md:h-36 rounded-full border-4 border-brew-text bg-white shadow-[6px_6px_0px_0px_currentColor] flex items-center justify-center overflow-hidden mb-6 ring-4 ring-[#fffdf0] hover-lift transition-transform">
               <Avatar name={creator.creator_name} size="xl" className="w-full h-full object-cover" />
-            )}
-          </div>
+            </div>
+          )}
           
           <h1 className="font-inter font-black text-3xl md:text-4xl text-brew-text uppercase tracking-tight mb-2 leading-none">{creator.creator_name}</h1>
           <div className="flex items-center gap-3 mb-6">
@@ -440,6 +463,35 @@ export default function CreatorProfilePage() {
             <p className="font-bold text-sm text-brew-text/60 mb-8 leading-relaxed">You're about to support <span className="text-brew-text font-black">{creatorFirstName}</span> with a contribution of <span className="text-brew-text font-black">${totalAmount.toFixed(2)}</span>. Redirecting to our secure Stripe checkout...</p>
             <button onClick={() => setShowCheckout(false)} className="w-full py-4 bg-brew-text text-white border-2 border-brew-text rounded-2xl font-black text-base uppercase tracking-widest shadow-[6px_6px_0px_0px_#F5C518] hover:translate-x-1 hover:translate-y-1 active:shadow-none transition-all">Continue to Stripe</button>
             <p className="mt-6 text-[9px] font-black uppercase tracking-[0.2em] opacity-30">Transaction Secured by 256-bit Encryption</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Avatar Lightbox ── */}
+      {showAvatarModal && creator.creator_image && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${creator.creator_name}'s profile picture`}
+        >
+          <div
+            className="fixed inset-0 bg-brew-text/60 backdrop-blur-xl animate-fade-in"
+            onClick={() => setShowAvatarModal(false)}
+          />
+          <div className="relative animate-slide-in-up">
+            <img
+              src={`${API_ORIGIN}${creator.creator_image}`}
+              alt={creator.creator_name}
+              className="max-w-[88vw] max-h-[82vh] w-auto h-auto object-contain rounded-[32px] border-4 border-brew-text shadow-[10px_10px_0px_0px_#F5C518] bg-white"
+            />
+            <button
+              onClick={() => setShowAvatarModal(false)}
+              aria-label="Close"
+              className="absolute -top-4 -right-4 w-12 h-12 flex items-center justify-center bg-white border-4 border-brew-text rounded-full shadow-[4px_4px_0px_0px_currentColor] text-brew-text hover:bg-brew-yellow-light hover:-translate-y-0.5 active:translate-y-0 transition-all"
+            >
+              <X size={22} strokeWidth={3} />
+            </button>
           </div>
         </div>
       )}
