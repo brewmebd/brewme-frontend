@@ -1,67 +1,105 @@
-import { useState, useEffect } from "react";
-import Card from "../../components/Card";
-import Button from "../../components/Button";
-import Input from "../../components/Input";
+import { useState, useEffect, useRef } from "react";
 import Avatar from "../../components/Avatar";
 import Toast from "../../components/Toast";
-import { Camera, Link2, Bell, CreditCard, Save, Check, X, Loader2, Image as ImageIcon, Target } from "lucide-react";
-import { getProfile, API_ORIGIN } from "../../lib/api";
+import {
+  Camera,
+  Bell,
+  CreditCard,
+  Save,
+  X,
+  Loader2,
+  Image as ImageIcon,
+} from "lucide-react";
+import {
+  getDashboardSettings,
+  updateDashboardProfile,
+  updateDashboardAvatar,
+  updateDashboardNotifications,
+  updateDashboardGoal,
+  API_ORIGIN,
+} from "../../lib/api";
+
+const defaultForm = {
+  name: "",
+  bio: "",
+  slug: "",
+  email: "",
+  image: "",
+  cover_image: "",
+  category: "Digital Art",
+  goal_title: "Improving equipment for higher quality creative work.",
+  goal_amount: "500",
+};
+
+const defaultNotifications = {
+  newSupporter: true,
+  newMessage: true,
+  weeklyReport: false,
+  marketingEmails: false,
+};
 
 export default function DashboardSettings() {
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState({
-    name: "",
-    bio: "",
-    slug: "",
-    email: "",
-    image: "",
-    cover_image: "",
-    category: "Digital Art",
-    goal_title: "Improving equipment for higher quality creative work.",
-    goal_amount: "500",
-  });
-
-  const [notifications, setNotifications] = useState({
-    newSupporter: true,
-    newMessage: true,
-    weeklyReport: false,
-    marketingEmails: false,
-  });
+  const [toast, setToast] = useState(null);
+  const [form, setForm] = useState(defaultForm);
+  const [notifications, setNotifications] = useState(defaultNotifications);
+  const avatarInputRef = useRef(null);
 
   const categories = [
-    "Digital Art", "Music", "Writing", "Podcasting", "Open Source", 
-    "Education", "Gaming", "Photography", "Film", "Cooking", "Tech", "Fitness"
+    "Digital Art",
+    "Music",
+    "Writing",
+    "Podcasting",
+    "Open Source",
+    "Education",
+    "Gaming",
+    "Photography",
+    "Film",
+    "Cooking",
+    "Tech",
+    "Fitness",
   ];
 
-  const [showToast, setShowToast] = useState(false);
-
   useEffect(() => {
-    async function loadProfile() {
+    async function loadSettings() {
       try {
-        const data = await getProfile();
-        if (data.status && data.profile_info) {
-          const info = data.profile_info;
-          setForm({
-            name: info.creator_name || "",
-            bio: info.creator_bio || "",
-            slug: info.creator_url || "",
-            email: info.creator_email || "",
-            image: info.creator_image ? `${API_ORIGIN}${info.creator_image}` : "",
-            cover_image: info.cover_image ? `${API_ORIGIN}${info.cover_image}` : "",
-            category: info.creator_category || "Digital Art",
-            goal_title: info.goal_title || "Improving equipment for higher quality creative work.",
-            goal_amount: info.goal_amount || "500",
-          });
-        }
+        const data = await getDashboardSettings();
+        const profile = data.profile || {};
+        const goal = data.goal || {};
+
+        setForm({
+          name: profile.creator_name || "",
+          bio: profile.creator_bio || "",
+          slug: profile.creator_url || "",
+          email: profile.creator_email || "",
+          image: profile.creator_image
+            ? `${API_ORIGIN}${profile.creator_image}`
+            : "",
+          cover_image: "",
+          category: profile.creator_category || "Digital Art",
+          goal_title: goal.goal_title || defaultForm.goal_title,
+          goal_amount: goal.goal_amount
+            ? String(goal.goal_amount)
+            : defaultForm.goal_amount,
+        });
+
+        setNotifications({
+          newSupporter: data.notifications?.new_supporter ?? true,
+          newMessage: data.notifications?.new_message ?? true,
+          weeklyReport: data.notifications?.weekly_report ?? false,
+          marketingEmails: data.notifications?.marketing_emails ?? false,
+        });
       } catch (err) {
-        setError("Failed to load profile settings.");
+        setError(err.message || "Failed to load profile settings.");
         console.error(err);
       } finally {
         setLoading(false);
       }
     }
-    loadProfile();
+
+    loadSettings();
   }, []);
 
   const handleChange = (e) =>
@@ -71,23 +109,100 @@ export default function DashboardSettings() {
     setNotifications({ ...notifications, [key]: !notifications[key] });
   };
 
-  const handleSave = () => {
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+  const openAvatarPicker = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setForm((current) => ({ ...current, image: previewUrl }));
+
+    try {
+      const result = await updateDashboardAvatar(file);
+      if (result?.avatar_url) {
+        setForm((current) => ({
+          ...current,
+          image: result.avatar_url.startsWith("/")
+            ? `${API_ORIGIN}${result.avatar_url}`
+            : result.avatar_url,
+        }));
+      }
+      setToast({ type: "success", message: "Avatar updated successfully!" });
+    } catch (err) {
+      setError(err.message || "Failed to upload avatar.");
+      setToast({
+        type: "error",
+        message: err.message || "Failed to upload avatar.",
+      });
+      setForm((current) => ({
+        ...current,
+        image:
+          current.image && current.image.startsWith("blob:")
+            ? ""
+            : current.image,
+      }));
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const handleSave = async () => {
+    if (saving) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      await Promise.all([
+        updateDashboardProfile({
+          name: form.name,
+          bio: form.bio,
+          email: form.email,
+          category: form.category,
+        }),
+        updateDashboardNotifications({
+          new_supporter: notifications.newSupporter,
+          new_message: notifications.newMessage,
+          weekly_report: notifications.weeklyReport,
+          marketing_emails: notifications.marketingEmails,
+        }),
+        updateDashboardGoal({
+          goal_title: form.goal_title,
+          goal_amount: Number(form.goal_amount),
+        }),
+      ]);
+      setToast({ type: "success", message: "Settings saved successfully!" });
+    } catch (err) {
+      setError(err.message || "Failed to save settings.");
+      setToast({
+        type: "error",
+        message: err.message || "Failed to save settings.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-brew-text">
-        <Loader2 size={48} className="text-brew-yellow animate-spin" strokeWidth={3} />
-        <p className="font-inter font-black uppercase tracking-widest text-sm">Loading Settings...</p>
+        <Loader2
+          size={48}
+          className="text-brew-yellow animate-spin"
+          strokeWidth={3}
+        />
+        <p className="font-inter font-black uppercase tracking-widest text-sm">
+          Loading Settings...
+        </p>
       </div>
     );
   }
 
   return (
     <div className="animate-fade-up text-brew-text max-w-5xl mx-auto pb-20">
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
         <div>
           <div className="inline-block mb-2 px-3 py-1 border-2 border-brew-text bg-brew-yellow font-inter font-black text-[10px] uppercase tracking-widest rounded-full shadow-[2px_2px_0px_0px_currentColor] -rotate-1">
@@ -102,10 +217,19 @@ export default function DashboardSettings() {
         </div>
         <button
           onClick={handleSave}
-          className="flex items-center justify-center gap-2 px-8 py-3 border-2 border-brew-text bg-brew-text text-white font-inter font-black text-xs uppercase tracking-widest shadow-[3px_3px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all rounded-xl w-full sm:w-auto"
+          disabled={saving}
+          className="flex items-center justify-center gap-2 px-8 py-3 border-2 border-brew-text bg-brew-text text-white font-inter font-black text-xs uppercase tracking-widest shadow-[3px_3px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all rounded-xl w-full sm:w-auto disabled:opacity-60"
         >
-          <Save size={16} strokeWidth={3} className="text-brew-yellow" />
-          Save Changes
+          {saving ? (
+            <Loader2
+              size={16}
+              strokeWidth={3}
+              className="text-brew-yellow animate-spin"
+            />
+          ) : (
+            <Save size={16} strokeWidth={3} className="text-brew-yellow" />
+          )}
+          {saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
 
@@ -117,17 +241,24 @@ export default function DashboardSettings() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Profile Visuals & Info */}
         <div className="lg:col-span-8 space-y-8">
-          
-          {/* Visuals Card (Cover & Avatar) */}
           <div className="bg-white border-4 border-brew-text rounded-[32px] overflow-hidden shadow-[8px_8px_0px_0px_currentColor]">
-            {/* Cover Preview */}
             <div className="relative h-44 bg-brew-yellow border-b-4 border-brew-text group">
               {form.cover_image ? (
-                <img src={form.cover_image} className="w-full h-full object-cover" alt="" />
+                <img
+                  src={form.cover_image}
+                  className="w-full h-full object-cover"
+                  alt=""
+                />
               ) : (
-                <div className="w-full h-full opacity-10" style={{ backgroundImage: 'radial-gradient(#3E2723 2px, transparent 2px)', backgroundSize: '24px 24px' }} />
+                <div
+                  className="w-full h-full opacity-10"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(#3E2723 2px, transparent 2px)",
+                    backgroundSize: "24px 24px",
+                  }}
+                />
               )}
               <div className="absolute inset-0 bg-brew-text/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                 <button className="px-4 py-2 bg-white border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest shadow-[3px_3px_0px_0px_currentColor] hover:-translate-y-0.5 transition-all">
@@ -135,118 +266,232 @@ export default function DashboardSettings() {
                 </button>
               </div>
             </div>
-            
-            {/* Avatar Section */}
+
             <div className="p-8 -mt-20 relative flex flex-col md:flex-row items-end gap-6">
               <div className="relative group">
                 <div className="w-32 h-32 rounded-full border-4 border-brew-text bg-white shadow-[4px_4px_0px_0px_currentColor] overflow-hidden flex items-center justify-center ring-8 ring-white">
-                  <Avatar name={form.name} src={form.image} size="xl" className="w-full h-full" />
+                  <Avatar
+                    name={form.name}
+                    src={form.image}
+                    size="xl"
+                    className="w-full h-full"
+                  />
                 </div>
-                <button className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-brew-yellow border-2 border-brew-text flex items-center justify-center shadow-[2px_2px_0px_0px_currentColor] hover:scale-110 transition-transform">
+                <button
+                  type="button"
+                  onClick={openAvatarPicker}
+                  className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-brew-yellow border-2 border-brew-text flex items-center justify-center shadow-[2px_2px_0px_0px_currentColor] hover:scale-110 transition-transform"
+                >
                   <Camera size={18} strokeWidth={3} />
                 </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/gif"
+                  className="sr-only"
+                  onChange={handleAvatarChange}
+                />
               </div>
               <div className="mb-4">
-                <h3 className="font-inter font-black text-xl uppercase tracking-tight mb-1 leading-none">Visual Identity</h3>
-                <p className="font-inter font-bold text-xs opacity-40 uppercase tracking-widest leading-none">Your avatar and cover art.</p>
+                <h3 className="font-inter font-black text-xl uppercase tracking-tight mb-1 leading-none">
+                  Visual Identity
+                </h3>
+                <p className="font-inter font-bold text-xs opacity-40 uppercase tracking-widest leading-none">
+                  Your avatar and cover art.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Info Card */}
           <div className="bg-white border-4 border-brew-text rounded-[32px] p-8 shadow-[8px_8px_0px_0px_currentColor] space-y-8">
-            <h3 className="font-inter font-black text-lg uppercase tracking-widest border-b-4 border-brew-text pb-2 inline-block">Basic Information</h3>
-            
+            <h3 className="font-inter font-black text-lg uppercase tracking-widest border-b-4 border-brew-text pb-2 inline-block">
+              Basic Information
+            </h3>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Display Name</label>
-                <input name="name" type="text" value={form.name} onChange={handleChange} className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all" />
+                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">
+                  Display Name
+                </label>
+                <input
+                  name="name"
+                  type="text"
+                  value={form.name}
+                  onChange={handleChange}
+                  className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all"
+                />
               </div>
               <div>
-                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Creative Category</label>
+                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">
+                  Creative Category
+                </label>
                 <div className="relative">
-                  <select name="category" value={form.category} onChange={handleChange} className="w-full appearance-none px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-black text-[11px] uppercase tracking-widest focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] cursor-pointer">
-                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  <select
+                    name="category"
+                    value={form.category}
+                    onChange={handleChange}
+                    className="w-full appearance-none px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-black text-[11px] uppercase tracking-widest focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] cursor-pointer"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
                   </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none font-black text-[10px]">↓</div>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none font-black text-[10px]">
+                    ↓
+                  </div>
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Bio</label>
-              <textarea name="bio" value={form.bio} onChange={handleChange} rows={4} className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all resize-none" />
+              <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">
+                Bio
+              </label>
+              <textarea
+                name="bio"
+                value={form.bio}
+                onChange={handleChange}
+                rows={4}
+                className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all resize-none"
+              />
             </div>
 
             <div>
-              <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Personal URL</label>
-              <div className="flex items-stretch border-2 border-brew-text rounded-2xl overflow-hidden bg-[#fffdf0] focus-within:shadow-[4px_4px_0px_0px_currentColor] transition-all">
-                <span className="flex items-center px-4 py-3 bg-brew-yellow border-r-2 border-brew-text font-inter font-black text-xs uppercase tracking-widest">brewme.com/</span>
-                <input name="slug" value={form.slug} onChange={handleChange} className="flex-1 min-w-0 px-4 py-3 bg-transparent font-inter font-black text-sm outline-none" />
+              <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">
+                Personal URL
+              </label>
+              <div className="flex items-stretch border-2 border-brew-text rounded-2xl overflow-hidden bg-[#fffdf0]">
+                <span className="flex items-center px-4 py-3 bg-brew-yellow border-r-2 border-brew-text font-inter font-black text-xs uppercase tracking-widest">
+                  brewme.com/
+                </span>
+                <div className="flex-1 min-w-0 px-4 py-3 bg-transparent font-inter font-black text-sm opacity-60 truncate">
+                  {form.slug || "your-url"}
+                </div>
               </div>
+              <p className="mt-2 text-[10px] uppercase tracking-[0.2em] font-inter font-bold text-brew-text/35">
+                This URL is fixed for now.
+              </p>
+            </div>
+
+            <div>
+              <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">
+                Email
+              </label>
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all"
+              />
             </div>
           </div>
 
-          {/* Funding Goal Card */}
           <div className="bg-white border-4 border-brew-text rounded-[32px] p-8 shadow-[8px_8px_0px_0px_currentColor] space-y-6">
-            <h3 className="font-inter font-black text-lg uppercase tracking-widest border-b-4 border-brew-text pb-2 inline-block mb-4">Funding Goal</h3>
-            <p className="font-inter font-bold text-[10px] text-brew-text/40 uppercase tracking-widest leading-none mb-4">Set a target for your community to rally behind.</p>
-            
+            <h3 className="font-inter font-black text-lg uppercase tracking-widest border-b-4 border-brew-text pb-2 inline-block mb-4">
+              Funding Goal
+            </h3>
+            <p className="font-inter font-bold text-[10px] text-brew-text/40 uppercase tracking-widest leading-none mb-4">
+              Set a target for your community to rally behind.
+            </p>
+
             <div className="space-y-6">
               <div>
-                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Goal Title</label>
-                <input name="goal_title" type="text" value={form.goal_title} onChange={handleChange} placeholder="e.g. New Camera Lens" className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all" />
+                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">
+                  Goal Title
+                </label>
+                <input
+                  name="goal_title"
+                  type="text"
+                  value={form.goal_title}
+                  onChange={handleChange}
+                  placeholder="e.g. New Camera Lens"
+                  className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all"
+                />
               </div>
               <div>
-                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">Target Amount ($)</label>
+                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] mb-3 opacity-50">
+                  Target Amount ($)
+                </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-inter font-black text-lg">$</span>
-                  <input name="goal_amount" type="number" value={form.goal_amount} onChange={handleChange} className="w-full pl-10 pr-4 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-black text-xl focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all" />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-inter font-black text-lg">
+                    $
+                  </span>
+                  <input
+                    name="goal_amount"
+                    type="number"
+                    value={form.goal_amount}
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-4 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-black text-xl focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all"
+                  />
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Payouts & Preferences */}
         <div className="lg:col-span-4 space-y-8">
-          
-          {/* Payouts Card */}
           <div className="bg-white border-4 border-brew-text rounded-[32px] p-6 shadow-[6px_6px_0px_0px_currentColor]">
-            <h3 className="font-inter font-black text-xs uppercase tracking-[0.3em] mb-6 opacity-40 flex items-center gap-2 leading-none"><CreditCard size={14} /> Payouts</h3>
+            <h3 className="font-inter font-black text-xs uppercase tracking-[0.3em] mb-6 opacity-40 flex items-center gap-2 leading-none">
+              <CreditCard size={14} /> Payouts
+            </h3>
             <div className="bg-blue-50 border-2 border-brew-text rounded-2xl p-5 shadow-[3px_3px_0px_0px_currentColor]">
-              <p className="font-inter font-black text-xs uppercase tracking-widest mb-1 leading-none">Stripe Connected</p>
-              <p className="font-inter font-bold text-[10px] opacity-40 uppercase tracking-[0.2em] mb-4">•••• 4242</p>
-              <button className="w-full py-3 bg-brew-text text-white border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">Manage Stripe</button>
+              <p className="font-inter font-black text-xs uppercase tracking-widest mb-1 leading-none">
+                Coming Soon
+              </p>
+              <p className="font-inter font-bold text-[10px] opacity-40 uppercase tracking-[0.2em] mb-4">
+                Payout controls will be implemented later.
+              </p>
+              <button
+                className="w-full py-3 bg-brew-text/70 text-white border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_#F5C518] cursor-not-allowed opacity-60"
+                disabled
+              >
+                Manage Stripe
+              </button>
             </div>
           </div>
 
-          {/* Preferences Card */}
           <div className="bg-white border-4 border-brew-text rounded-[32px] p-6 shadow-[6px_6px_0px_0px_currentColor] space-y-6">
-            <h3 className="font-inter font-black text-xs uppercase tracking-[0.3em] mb-2 opacity-40 flex items-center gap-2 leading-none"><Bell size={14} /> Notifications</h3>
-            
-            {["newSupporter", "newMessage", "weeklyReport"].map((key) => (
-              <div key={key} className="flex items-center justify-between gap-4">
-                <span className="font-inter font-black text-[10px] uppercase tracking-widest opacity-70 leading-none">{key.replace(/([A-Z])/g, ' $1')}</span>
+            <h3 className="font-inter font-black text-xs uppercase tracking-[0.3em] mb-2 opacity-40 flex items-center gap-2 leading-none">
+              <Bell size={14} /> Notifications
+            </h3>
+
+            {[
+              ["newSupporter", "New supporter"],
+              ["newMessage", "New message"],
+              ["weeklyReport", "Weekly report"],
+              ["marketingEmails", "Marketing emails"],
+            ].map(([key, label]) => (
+              <div
+                key={key}
+                className="flex items-center justify-between gap-4"
+              >
+                <span className="font-inter font-black text-[10px] uppercase tracking-widest opacity-70 leading-none">
+                  {label}
+                </span>
                 <button
                   onClick={() => handleToggle(key)}
                   className={`relative w-12 h-7 rounded-full border-2 border-brew-text transition-colors duration-200 cursor-pointer shadow-[2px_2px_0px_0px_currentColor]
                     ${notifications[key] ? "bg-brew-yellow" : "bg-[#fffdf0]"}`}
+                  type="button"
                 >
-                  <div className={`absolute top-0.5 bottom-0.5 w-5 border-2 border-brew-text rounded-full bg-white transition-transform duration-200 ${notifications[key] ? "translate-x-5" : "translate-x-0.5"}`} />
+                  <div
+                    className={`absolute top-0.5 bottom-0.5 w-5 border-2 border-brew-text rounded-full bg-white transition-transform duration-200 ${notifications[key] ? "translate-x-5" : "translate-x-0.5"}`}
+                  />
                 </button>
               </div>
             ))}
           </div>
-
         </div>
       </div>
 
-      {showToast && (
+      {toast && (
         <Toast
-          message="Settings saved successfully!"
-          type="success"
-          onClose={() => setShowToast(null)}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
     </div>

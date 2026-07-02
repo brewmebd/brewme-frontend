@@ -47,14 +47,16 @@ export default function DashboardSupporters() {
     loadSupporters();
   }, []);
 
-  const handleReplySubmit = async (supporterId) => {
+  const handleReplySubmit = async (supporter) => {
     if (!replyText.trim() || submittingReply) return;
     setSubmittingReply(true);
     try {
-      const response = await replyToSupporter(supporterId, replyText);
+      const response = await replyToSupporter(supporter.id, replyText, supporter.support_type);
 
+      // Match on both id and support_type: donations and memberships have
+      // independent id sequences, so id alone is not unique across the list.
       setSupporters(prev => prev.map(s =>
-        s.id === supporterId
+        s.id === supporter.id && s.support_type === supporter.support_type
           ? { ...s, support_replied: true, creator_reply: response.creator_reply || replyText }
           : s
       ));
@@ -237,76 +239,117 @@ export default function DashboardSupporters() {
           ) : (
             <div className="space-y-5">
               {filtered.map((s) => {
-                const isTop = s.id === topSupporterId;
-                const isReplying = replyingTo === s.id;
+                // Type-qualified id: donations and memberships have separate id
+                // sequences, so `s.id` alone collides across the two types.
+                const uid = `${s.support_type}-${s.id}`;
+                const isMember = s.support_type === "membership";
+                const isTop = s.id === topSupporterId && !isMember;
+                const isReplying = replyingTo === uid;
+                const initial = (s.supporter_name || "A").charAt(0).toUpperCase();
                 return (
-                  <div key={s.id} className={`relative bg-white border-4 border-brew-text rounded-[28px] p-6 md:p-7 shadow-[6px_6px_0px_0px_currentColor] transition-all hover:-translate-y-1 active-haptic ${isReplying ? "ring-4 ring-brew-yellow ring-offset-2 shadow-none" : ""}`}>
-                    {isTop && (
-                      <div className="absolute -top-3 left-8 inline-flex items-center gap-1.5 px-3 py-1 bg-brew-yellow border-2 border-brew-text rounded-full font-inter font-black text-[9px] uppercase tracking-widest shadow-[2px_2px_0px_0px_currentColor] -rotate-2">
-                        <Crown size={11} strokeWidth={3} /> Top Fan
-                      </div>
-                    )}
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-5 text-brew-text">
-                      <div className="flex items-start gap-4 flex-1 min-w-0">
-                        <div className={`w-12 h-12 rounded-full border-2 border-brew-text flex items-center justify-center font-black text-xl shrink-0 shadow-[2px_2px_0px_0px_currentColor] ${isTop ? "bg-brew-yellow" : "bg-brew-yellow-light"}`}>
-                          {(s.supporter_name || "A").charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-2">
-                            <span className="font-space font-black text-lg md:text-xl leading-none">{s.supporter_name || "Anonymous"}</span>
-                            <span className="font-inter font-black text-[10px] bg-[#fffdf0] border-2 border-brew-text px-2.5 py-1 rounded shadow-[1px_1px_0px_0px_currentColor] inline-flex items-center gap-1 uppercase">
-                              <Coffee size={12} strokeWidth={3} /> × {s.supporter_cups}
+                  <div
+                    key={uid}
+                    className={`group relative overflow-hidden bg-white border-4 border-brew-text rounded-[28px] shadow-[6px_6px_0px_0px_currentColor] transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-1 hover:shadow-[9px_10px_0px_0px_currentColor] active-haptic ${isReplying ? "ring-4 ring-brew-yellow ring-offset-2 shadow-none" : ""}`}
+                  >
+                    {/* Type accent rail */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-2.5 ${isMember ? "bg-brew-text" : "bg-brew-yellow"}`} />
+
+                    <div className="pl-7 pr-6 py-6 md:pr-7 text-brew-text">
+                      {/* Status ribbons */}
+                      {(isTop || isMember) && (
+                        <div className="flex items-center gap-2 mb-4">
+                          {isTop && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brew-yellow border-2 border-brew-text rounded-full font-inter font-black text-[9px] uppercase tracking-widest shadow-[2px_2px_0px_0px_currentColor] -rotate-2">
+                              <Crown size={11} strokeWidth={3} /> Top Fan
                             </span>
-                            <span className="font-inter font-black text-[10px] bg-brew-yellow border-2 border-brew-text px-2.5 py-1 rounded shadow-[1px_1px_0px_0px_currentColor] inline-flex items-center gap-0.5 uppercase">
-                              ${s.total_amount}
-                            </span>
-                          </div>
-                          {s.supporter_message && (
-                            <div className="relative my-3 text-brew-text">
-                              <div className="absolute -left-3 top-0 bottom-0 w-1.5 bg-brew-yellow rounded-full" />
-                              <p className="font-inter font-bold text-base text-brew-text/70 leading-relaxed pl-5 italic">"{s.supporter_message}"</p>
-                            </div>
                           )}
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="font-inter font-black text-[10px] opacity-30 uppercase tracking-widest inline-flex items-center gap-1">
+                          {isMember && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brew-text text-brew-yellow border-2 border-brew-text rounded-full font-inter font-black text-[9px] uppercase tracking-widest shadow-[2px_2px_0px_0px_currentColor]">
+                              <Users size={11} strokeWidth={3} /> Member
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+                        {/* Avatar + amount block */}
+                        <div className="flex sm:flex-col items-center gap-3 shrink-0">
+                          <div className={`w-16 h-16 rounded-2xl border-2 border-brew-text flex items-center justify-center font-space font-black text-2xl shrink-0 shadow-[3px_3px_0px_0px_currentColor] ${isTop ? "bg-brew-yellow" : isMember ? "bg-brew-text text-brew-yellow" : "bg-brew-yellow-light"}`}>
+                            {initial}
+                          </div>
+                          <div className="inline-flex items-baseline gap-0.5 px-3 py-1.5 bg-brew-yellow border-2 border-brew-text rounded-xl font-space font-black text-sm shadow-[2px_2px_0px_0px_currentColor]">
+                            ${s.total_amount}
+                            {isMember && <span className="font-inter font-bold text-[9px] opacity-60">/mo</span>}
+                          </div>
+                        </div>
+
+                        {/* Main content */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+                            <span className="font-space font-black text-xl leading-none">{s.supporter_name || "Anonymous"}</span>
+                            {!isMember && (
+                              <span className="font-inter font-black text-[10px] bg-brew-yellow-light border-2 border-brew-text px-2 py-0.5 rounded-lg shadow-[1px_1px_0px_0px_currentColor] inline-flex items-center gap-1 uppercase">
+                                <Coffee size={11} strokeWidth={3} /> × {s.supporter_cups}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Message */}
+                          {s.supporter_message ? (
+                            <div className="relative mt-4 bg-brew-yellow-light border-2 border-brew-text rounded-2xl rounded-tl-md p-4 shadow-[3px_3px_0px_0px_currentColor]">
+                              <p className="font-inter font-bold text-[15px] text-brew-text/80 leading-relaxed">"{s.supporter_message}"</p>
+                            </div>
+                          ) : (
+                            <p className="mt-3 font-inter font-bold text-sm text-brew-text/30 italic">
+                              {isMember ? "Recurring supporter — no message." : "No message left."}
+                            </p>
+                          )}
+
+                          {/* Meta + action row */}
+                          <div className="flex items-center gap-2.5 flex-wrap mt-4">
+                            <span className="font-inter font-black text-[10px] text-brew-text/30 uppercase tracking-widest inline-flex items-center gap-1">
                               <Clock size={11} strokeWidth={3} /> {getRelativeTime(s.created_at)}
                             </span>
                             {s.support_replied ? (
-                              <span className="font-inter font-black text-[9px] text-green-600 uppercase tracking-widest bg-green-50 px-2.5 py-1 rounded border-2 border-green-200 flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#bbf7d0]"><Check size={10} strokeWidth={5} /> Replied</span>
+                              <span className="font-inter font-black text-[9px] text-green-600 uppercase tracking-widest bg-green-50 px-2.5 py-1 rounded-lg border-2 border-green-300 inline-flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#bbf7d0]"><Check size={10} strokeWidth={5} /> Replied</span>
                             ) : (
-                              <span className="font-inter font-black text-[9px] text-brew-text/40 uppercase tracking-widest bg-[#fffdf0] px-2.5 py-1 rounded border-2 border-brew-text/15 flex items-center gap-1.5">Awaiting reply</span>
+                              <span className="font-inter font-black text-[9px] text-brew-text/50 uppercase tracking-widest bg-brew-yellow-light px-2.5 py-1 rounded-lg border-2 border-brew-text/15 inline-flex items-center gap-1.5"><MessageCircle size={10} strokeWidth={3} /> Awaiting reply</span>
+                            )}
+                            {!s.support_replied && (
+                              <button onClick={() => setReplyingTo(isReplying ? null : uid)} className={`ml-auto inline-flex items-center justify-center gap-2 px-5 py-2 border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest transition-all shrink-0 ${isReplying ? "bg-brew-text text-white shadow-none translate-x-0.5 translate-y-0.5" : "bg-brew-yellow text-brew-text shadow-[3px_3px_0px_0px_currentColor] hover:-translate-y-0.5"}`}>
+                                {isReplying ? <X size={13} strokeWidth={3} /> : <MessageCircle size={13} strokeWidth={3} />}
+                                {isReplying ? "Cancel" : "Reply"}
+                              </button>
                             )}
                           </div>
                         </div>
                       </div>
-                      {!s.support_replied && (
-                        <button onClick={() => setReplyingTo(isReplying ? null : s.id)} className={`inline-flex items-center justify-center gap-2 px-6 py-2.5 border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest transition-all shrink-0 ${isReplying ? "bg-brew-text text-white shadow-none translate-x-[2px] translate-y-[2px]" : "bg-white text-brew-text shadow-[3px_3px_0px_0px_currentColor] hover:-translate-y-0.5"}`}>
-                          {isReplying ? <X size={14} strokeWidth={3} /> : <MessageCircle size={14} strokeWidth={3} />}
-                          {isReplying ? "Cancel" : "Reply"}
-                        </button>
-                      )}
-                    </div>
-                    {isReplying && (
-                      <div className="mt-7 pt-7 border-t-2 border-dashed border-brew-text/10 animate-slide-in-up">
-                        <div className="bg-[#fffdf0] border-2 border-brew-text rounded-2xl p-5 shadow-[4px_4px_0px_0px_currentColor]">
-                          <textarea placeholder={`Say something nice to ${s.supporter_name || "your supporter"}...`} value={replyText} onChange={(e) => setReplyText(e.target.value)} rows={3} className="w-full bg-white border-2 border-brew-text rounded-xl p-4 font-inter font-bold text-sm text-brew-text focus:outline-none focus:shadow-[3px_3px_0px_0px_currentColor] transition-all resize-none" />
-                          <div className="flex justify-end mt-4">
-                            <button onClick={() => handleReplySubmit(s.id)} disabled={!replyText.trim() || submittingReply} className="inline-flex items-center gap-2 px-8 py-3 border-2 border-brew-text bg-brew-yellow font-inter font-black text-xs uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_currentColor] active-haptic disabled:opacity-50">
-                              {submittingReply ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} strokeWidth={3} />}
-                              {submittingReply ? "Sending..." : "Send Reply"}
-                            </button>
+
+                      {/* Reply composer */}
+                      {isReplying && (
+                        <div className="mt-6 pt-6 border-t-2 border-dashed border-brew-text/10 animate-slide-in-up">
+                          <div className="bg-brew-yellow-light border-2 border-brew-text rounded-2xl p-5 shadow-[4px_4px_0px_0px_currentColor]">
+                            <textarea placeholder={`Say something nice to ${s.supporter_name || "your supporter"}...`} value={replyText} onChange={(e) => setReplyText(e.target.value)} rows={3} className="w-full bg-white border-2 border-brew-text rounded-xl p-4 font-inter font-bold text-sm text-brew-text focus:outline-none focus:shadow-[3px_3px_0px_0px_currentColor] transition-all resize-none" />
+                            <div className="flex justify-end mt-4">
+                              <button onClick={() => handleReplySubmit(s)} disabled={!replyText.trim() || submittingReply} className="inline-flex items-center gap-2 px-8 py-3 border-2 border-brew-text bg-brew-yellow font-inter font-black text-xs uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_currentColor] hover:-translate-y-0.5 active-haptic disabled:opacity-50 disabled:hover:translate-y-0 transition-all">
+                                {submittingReply ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} strokeWidth={3} />}
+                                {submittingReply ? "Sending..." : "Send Reply"}
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                    {s.support_replied && s.creator_reply && (
-                      <div className="mt-6 pt-6 border-t-2 border-dashed border-brew-text/5">
-                        <div className="bg-green-50/50 border-2 border-green-200 rounded-2xl p-4">
-                          <div className="flex items-center gap-2 mb-2 text-green-600 opacity-60"><Check size={12} strokeWidth={5} /><span className="font-inter font-black text-[9px] uppercase tracking-widest">You replied</span></div>
-                          <p className="font-inter font-bold text-sm text-brew-text/60 italic leading-relaxed">"{s.creator_reply}"</p>
+                      )}
+
+                      {/* Existing reply */}
+                      {s.support_replied && s.creator_reply && (
+                        <div className="mt-6 pt-6 border-t-2 border-dashed border-brew-text/10">
+                          <div className="bg-green-50/60 border-2 border-green-300 rounded-2xl p-4 shadow-[3px_3px_0px_0px_#bbf7d0]">
+                            <div className="flex items-center gap-2 mb-2 text-green-700"><Check size={12} strokeWidth={5} /><span className="font-inter font-black text-[9px] uppercase tracking-widest">You replied</span></div>
+                            <p className="font-inter font-bold text-sm text-brew-text/70 italic leading-relaxed">"{s.creator_reply}"</p>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 );
               })}

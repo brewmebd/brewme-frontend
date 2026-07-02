@@ -131,7 +131,7 @@ export default function ExplorePage() {
           /* Error State */
           <div className="text-center py-24 animate-fade-up bg-white border-4 border-dashed border-brew-text/30 rounded-[32px] max-w-3xl mx-auto">
             <div className="text-7xl mb-6 inline-block -rotate-12 drop-shadow-[4px_4px_0px_rgba(62,39,35,0.2)]">
-              ☕
+              <img src="/icons/coffee-cup.png" className="w-16 h-full"></img>
             </div>
             <h3 className="font-inter font-black text-3xl text-brew-text mb-3 uppercase tracking-tight">
               Something spilled
@@ -195,7 +195,10 @@ export default function ExplorePage() {
                   <div className="mt-auto border-t-2 border-brew-text pt-4 bg-brew-yellow-light/50 -mx-6 -mb-6 p-4 rounded-b-3xl">
                     <p className="font-inter text-xs font-black text-brew-text uppercase tracking-widest inline-flex items-center gap-1.5">
                       <Coffee size={14} strokeWidth={3} />
-                      {(creator.total_supporters_cup || 0).toLocaleString()} cups
+                      {(
+                        creator.total_supporters_cup || 0
+                      ).toLocaleString()}{" "}
+                      cups
                     </p>
                   </div>
                 </div>

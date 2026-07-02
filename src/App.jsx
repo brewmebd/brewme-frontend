@@ -1,21 +1,22 @@
-import { Routes, Route } from 'react-router-dom'
-import Layout from './components/Layout'
-import DashboardLayout from './components/DashboardLayout'
-import RequireAuth from './components/RequireAuth'
-import HomePage from './pages/HomePage'
-import SignUpPage from './pages/SignUpPage'
-import LoginPage from './pages/LoginPage'
-import ExplorePage from './pages/ExplorePage'
-import SupportSuccessPage from './pages/SupportSuccessPage'
-import CreatorProfilePage from './pages/CreatorProfilePage'
-import DashboardOverview from './pages/dashboard/DashboardOverview'
-import DashboardSupporters from './pages/dashboard/DashboardSupporters'
-import DashboardEarnings from './pages/dashboard/DashboardEarnings'
-import DashboardPosts from './pages/dashboard/DashboardPosts'
-import DashboardMemberships from './pages/dashboard/DashboardMemberships'
-import DashboardSettings from './pages/dashboard/DashboardSettings'
-import DashboardShare from './pages/dashboard/DashboardShare'
-import NotFoundPage from './pages/NotFoundPage'
+import { Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout";
+import DashboardLayout from "./components/DashboardLayout";
+import RequireAuth from "./components/RequireAuth";
+import HomePage from "./pages/HomePage";
+import SignUpPage from "./pages/SignUpPage";
+import LoginPage from "./pages/LoginPage";
+import ExplorePage from "./pages/ExplorePage";
+import SupportSuccessPage from "./pages/SupportSuccessPage";
+import CreatorProfilePage from "./pages/CreatorProfilePage";
+import DashboardOverview from "./pages/dashboard/DashboardOverview";
+import DashboardSupporters from "./pages/dashboard/DashboardSupporters";
+import DashboardEarnings from "./pages/dashboard/DashboardEarnings";
+import DashboardPosts from "./pages/dashboard/DashboardPosts";
+import DashboardMemberships from "./pages/dashboard/DashboardMemberships";
+import DashboardSettings from "./pages/dashboard/DashboardSettings";
+import DashboardShare from "./pages/dashboard/DashboardShare";
+import NotFoundPage from "./pages/NotFoundPage";
+import Game from "./pages/dashboard/Game";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/success" element={<SupportSuccessPage />} />
         <Route path="/:username" element={<CreatorProfilePage />} />
+        <Route path="/game" element={<Game />} />
       </Route>
       <Route element={<RequireAuth />}>
         <Route path="/dashboard" element={<DashboardLayout />}>
@@ -41,7 +43,7 @@ function App() {
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

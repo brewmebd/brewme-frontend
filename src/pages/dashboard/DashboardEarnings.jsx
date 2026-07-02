@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import Card from "../../components/Card";
 import Button from "../../components/Button";
 import Badge from "../../components/Badge";
 import Toast from "../../components/Toast";
 import Skeleton from "../../components/Skeleton";
-import { DollarSign, ArrowUpRight, Download, Loader2, Landmark, Check, X, Sparkles, TrendingUp } from "lucide-react";
+import { DollarSign, ArrowUpRight, ArrowRight, Download, Loader2, Landmark, Check, X, Sparkles, TrendingUp } from "lucide-react";
 import { getDashboardEarnings, requestPayout, getProfile } from "../../lib/api";
 import { exportEarningsPDF } from "../../lib/export";
 import {
@@ -78,12 +79,16 @@ export default function DashboardEarnings() {
 
     setRequestSubmitting(true);
     try {
-      await requestPayout(payoutForm);
+      const res = await requestPayout(payoutForm);
       setToast({ type: "success", message: `Request for $${amountNum.toFixed(2)} sent!` });
       const newBalance = balanceNum - amountNum;
-      setData(prev => ({ ...prev, available_balance: `$${newBalance.toFixed(2)}` }));
+      setData(prev => ({
+        ...prev,
+        available_balance: `$${newBalance.toFixed(2)}`,
+        payouts: res?.payout ? [res.payout, ...(prev.payouts || [])] : prev.payouts,
+      }));
       setShowModal(false);
-    } catch (err) { setToast({ type: "error", message: "Failed to request payout." }); } 
+    } catch (err) { setToast({ type: "error", message: err.message || "Failed to request payout." }); }
     finally { setRequestSubmitting(false); }
   };
 
