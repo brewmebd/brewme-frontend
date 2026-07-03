@@ -17,8 +17,11 @@ import {
   updateDashboardNotifications,
   updateDashboardGoal,
   createStripeConnectLink,
+  requestEmailChange,
+  verifyEmailChange,
   API_ORIGIN,
 } from "../../lib/api";
+import ImageCropper from "../../components/ImageCropper";
 
 const defaultForm = {
   name: "",
@@ -54,6 +57,10 @@ export default function DashboardSettings() {
   const [notifications, setNotifications] = useState(defaultNotifications);
   const [stripe, setStripe] = useState(defaultStripe);
   const [socialLinks, setSocialLinks] = useState([]);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [originalEmail, setOriginalEmail] = useState("");
+  const [emailChangeStatus, setEmailChangeStatus] = useState("idle");
+  const [emailChangeCode, setEmailChangeCode] = useState("");
   const avatarInputRef = useRef(null);
 
   const categories = [
@@ -78,11 +85,13 @@ export default function DashboardSettings() {
         const profile = data.profile || {};
         const goal = data.goal || {};
 
+        const email = profile.creator_email || "";
+        
         setForm({
           name: profile.creator_name || "",
           bio: profile.creator_bio || "",
           slug: profile.creator_url || "",
-          email: profile.creator_email || "",
+          email: email,
           image: profile.creator_image
             ? `${API_ORIGIN}${profile.creator_image}`
             : "",
@@ -93,6 +102,7 @@ export default function DashboardSettings() {
             ? String(goal.goal_amount)
             : defaultForm.goal_amount,
         });
+        setOriginalEmail(email);
 
         setNotifications({
           newSupporter: data.notifications?.new_supporter ?? true,
@@ -149,11 +159,28 @@ export default function DashboardSettings() {
     }
   };
 
-  const handleAvatarChange = async (e) => {
+  const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 2 * 1024 * 1024) {
+      setToast({ type: "error", message: "Avatar image must be under 2MB" });
+      e.target.value = "";
+      return;
+    }
+
     const previewUrl = URL.createObjectURL(file);
+    setCropImageSrc(previewUrl);
+    e.target.value = ""; // Reset to allow selecting the same file again
+  };
+
+  const handleCropComplete = async (croppedBlob) => {
+    setCropImageSrc(null); // Close cropper
+    
+    // Create a File object from the Blob
+    const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+    const previewUrl = URL.createObjectURL(file);
+    
     setForm((current) => ({ ...current, image: previewUrl }));
 
     try {
@@ -180,8 +207,39 @@ export default function DashboardSettings() {
             ? ""
             : current.image,
       }));
-    } finally {
-      e.target.value = "";
+    }
+  };
+
+  const handleRequestEmailChange = async () => {
+    if (form.email === originalEmail) return;
+    setEmailChangeStatus("requesting");
+    setError(null);
+    try {
+      await requestEmailChange(form.email);
+      setToast({ type: "success", message: "Verification code sent to your new email." });
+      setEmailChangeStatus("code-sent");
+    } catch (err) {
+      setError(err.message || "Failed to request email change.");
+      setToast({ type: "error", message: err.message || "Failed to request email change." });
+      setEmailChangeStatus("idle");
+    }
+  };
+
+  const handleVerifyEmailChange = async () => {
+    if (!emailChangeCode.trim()) return;
+    setEmailChangeStatus("verifying");
+    setError(null);
+    try {
+      const result = await verifyEmailChange(emailChangeCode);
+      setOriginalEmail(result.new_email);
+      setForm((current) => ({ ...current, email: result.new_email }));
+      setToast({ type: "success", message: "Email successfully updated!" });
+      setEmailChangeStatus("idle");
+      setEmailChangeCode("");
+    } catch (err) {
+      setError(err.message || "Failed to verify email change.");
+      setToast({ type: "error", message: err.message || "Failed to verify email change." });
+      setEmailChangeStatus("code-sent");
     }
   };
 
@@ -331,10 +389,10 @@ export default function DashboardSettings() {
               </div>
               <div className="mb-4">
                 <h3 className="font-inter font-black text-xl uppercase tracking-tight mb-1 leading-none">
-                  Visual Identity
+                  {form.name || "Visual Identity"}
                 </h3>
                 <p className="font-inter font-bold text-xs opacity-40 uppercase tracking-widest leading-none">
-                  Your avatar and cover art.
+                  {form.slug ? `brewme.com/${form.slug}` : "Your avatar and cover art."}
                 </p>
               </div>
             </div>
@@ -420,9 +478,65 @@ export default function DashboardSettings() {
                 name="email"
                 type="email"
                 value={form.email}
-                onChange={handleChange}
-                className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all"
+                onChange={(e) => {
+                  handleChange(e);
+                  if (emailChangeStatus !== "idle") setEmailChangeStatus("idle");
+                }}
+                disabled={emailChangeStatus === "requesting" || emailChangeStatus === "verifying" || emailChangeStatus === "code-sent"}
+                className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all disabled:opacity-60"
               />
+              {form.email !== originalEmail && emailChangeStatus === "idle" && (
+                <button
+                  type="button"
+                  onClick={handleRequestEmailChange}
+                  className="mt-4 w-full sm:w-auto px-6 py-3 bg-brew-yellow border-2 border-brew-text rounded-xl font-inter font-black text-[11px] uppercase tracking-widest shadow-[3px_3px_0px_0px_currentColor] hover:-translate-y-px transition-all"
+                >
+                  Verify New Email
+                </button>
+              )}
+              {emailChangeStatus === "requesting" && (
+                <p className="mt-3 text-[10px] font-inter font-black uppercase tracking-widest text-brew-text/60">
+                  <Loader2 size={12} className="inline animate-spin mr-1" /> Sending code...
+                </p>
+              )}
+              {emailChangeStatus === "code-sent" && (
+                <div className="mt-4 p-5 border-2 border-brew-text bg-green-50 rounded-2xl shadow-[4px_4px_0px_0px_currentColor]">
+                  <p className="font-inter font-bold text-[10px] uppercase tracking-widest mb-3 text-brew-text/80">
+                    Enter the code sent to {form.email}
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="text"
+                      placeholder="6-char code"
+                      value={emailChangeCode}
+                      onChange={(e) => setEmailChangeCode(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-white border-2 border-brew-text rounded-xl font-inter font-black text-sm text-center tracking-[0.2em] uppercase focus:outline-none focus:shadow-[2px_2px_0px_0px_currentColor] transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyEmailChange}
+                      className="px-6 py-3 bg-brew-text text-white border-2 border-brew-text rounded-xl font-inter font-black text-[11px] uppercase tracking-widest shadow-[3px_3px_0px_0px_#F5C518] hover:-translate-y-px active:translate-y-[2px] transition-all"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailChangeStatus("idle");
+                      setForm((current) => ({ ...current, email: originalEmail }));
+                    }}
+                    className="mt-3 text-[9px] font-inter font-bold uppercase tracking-widest text-brew-text/50 hover:text-brew-text transition-colors"
+                  >
+                    Cancel email change
+                  </button>
+                </div>
+              )}
+              {emailChangeStatus === "verifying" && (
+                <p className="mt-3 text-[10px] font-inter font-black uppercase tracking-widest text-brew-text/60">
+                  <Loader2 size={12} className="inline animate-spin mr-1" /> Verifying code...
+                </p>
+              )}
             </div>
 
             <div>
@@ -570,6 +684,14 @@ export default function DashboardSettings() {
           </div>
         </div>
       </div>
+
+      {cropImageSrc && (
+        <ImageCropper
+          imageSrc={cropImageSrc}
+          onCropCompleteAction={handleCropComplete}
+          onCancel={() => setCropImageSrc(null)}
+        />
+      )}
 
       {toast && (
         <Toast

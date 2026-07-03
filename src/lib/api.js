@@ -430,6 +430,32 @@ export const deleteMembershipTier = async (tierId) => {
   return true;
 };
 
+// Request an email change verification code.
+export const requestEmailChange = async (newEmail) => {
+  const res = await apiFetch("/dashboard/settings/email/request-change", {
+    method: "POST",
+    body: JSON.stringify({ new_email: newEmail }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || error.message || "Failed to request email change");
+  }
+  return res.json();
+};
+
+// Verify an email change code.
+export const verifyEmailChange = async (code) => {
+  const res = await apiFetch("/dashboard/settings/email/verify-change", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || error.message || "Failed to verify email change");
+  }
+  return res.json();
+};
+
 // Get every creator for the Explore/Discover directory.
 export const getDiscoverCreators = async () => {
   const res = await fetch(`${API_BASE}/discover`);

@@ -389,7 +389,7 @@ export default function CreatorProfilePage() {
           {/* RIGHT: Sidebar */}
           <aside className="lg:col-span-5 xl:col-span-4 space-y-8 order-1 lg:order-2 lg:sticky lg:top-8 h-fit">
             {/* Dynamic Goal Widget */}
-            {creator.goal_title && (
+            {creator.goal_title && creator.stripe_connected && (
               <div className="bg-[#fffdf0] border-4 border-brew-text rounded-[32px] p-6 shadow-[6px_6px_0px_0px_currentColor] animate-fade-up">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -417,23 +417,33 @@ export default function CreatorProfilePage() {
             )}
 
             {/* Tip Box */}
-            <div id="support-box" className="bg-white border-4 border-brew-text rounded-[32px] p-6 shadow-[6px_6px_0px_0px_currentColor] text-brew-text">
-              <h2 className="font-black text-lg mb-6 uppercase tracking-widest flex items-center gap-3 leading-none">Support <Coffee size={24} className="text-brew-yellow" /></h2>
-              <div className="grid grid-cols-4 gap-2 mb-6">
-                {[1, 3, 5].map((count) => (
-                  <button key={count} onClick={() => handleCupSelect(count)} className={`h-12 rounded-xl border-2 border-brew-text flex items-center justify-center transition-all shadow-[2px_2px_0px_0px_currentColor] active-haptic
-                      ${!customCups && cupCount === count ? "bg-brew-yellow -translate-x-[1px] -translate-y-[1px] shadow-[4px_4px_0px_0px_currentColor]" : "bg-[#fffdf0] hover:-translate-y-0.5"}`}
-                  ><span className="font-black text-sm">×{count}</span></button>
-                ))}
-                <div className={`h-12 rounded-xl border-2 border-brew-text flex items-center justify-center transition-all shadow-[2px_2px_0px_0px_currentColor] ${customCups ? "bg-brew-yellow shadow-[3px_3px_0px_0px_currentColor]" : "bg-[#fffdf0]"}`}><input type="number" min="1" max="1000" value={customCups} onChange={handleCustomChange} placeholder="#" className="w-full h-full text-center font-black text-sm bg-transparent outline-none placeholder:text-brew-text/20" /></div>
+            {creator.stripe_connected ? (
+              <div id="support-box" className="bg-white border-4 border-brew-text rounded-[32px] p-6 shadow-[6px_6px_0px_0px_currentColor] text-brew-text">
+                <h2 className="font-black text-lg mb-6 uppercase tracking-widest flex items-center gap-3 leading-none">Support <Coffee size={24} className="text-brew-yellow" /></h2>
+                <div className="grid grid-cols-4 gap-2 mb-6">
+                  {[1, 3, 5].map((count) => (
+                    <button key={count} onClick={() => handleCupSelect(count)} className={`h-12 rounded-xl border-2 border-brew-text flex items-center justify-center transition-all shadow-[2px_2px_0px_0px_currentColor] active-haptic
+                        ${!customCups && cupCount === count ? "bg-brew-yellow -translate-x-[1px] -translate-y-[1px] shadow-[4px_4px_0px_0px_currentColor]" : "bg-[#fffdf0] hover:-translate-y-0.5"}`}
+                    ><span className="font-black text-sm">×{count}</span></button>
+                  ))}
+                  <div className={`h-12 rounded-xl border-2 border-brew-text flex items-center justify-center transition-all shadow-[2px_2px_0px_0px_currentColor] ${customCups ? "bg-brew-yellow shadow-[3px_3px_0px_0px_currentColor]" : "bg-[#fffdf0]"}`}><input type="number" min="1" max="1000" value={customCups} onChange={handleCustomChange} placeholder="#" className="w-full h-full text-center font-black text-sm bg-transparent outline-none placeholder:text-brew-text/20" /></div>
+                </div>
+                <div className="space-y-3 mb-6">
+                  <input type="text" placeholder="Your Name" value={supporterName} onChange={(e) => setSupporterName(e.target.value)} className="w-full px-4 py-3 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-bold text-xs focus:outline-none focus:bg-white transition-all shadow-[2px_2px_0px_0px_currentColor]" />
+                  <textarea placeholder="Say something nice..." value={message} onChange={(e) => setMessage(e.target.value)} rows={3} className="w-full px-4 py-3 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-bold text-xs focus:outline-none focus:bg-white transition-all resize-none shadow-[2px_2px_0px_0px_currentColor]" />
+                </div>
+                <button onClick={handleSupportClick} disabled={supportLoading} className="flex w-full min-h-[60px] items-center justify-center gap-3 rounded-xl border-4 border-brew-text bg-brew-text text-[#fffdf0] px-6 py-3 font-black text-lg shadow-[4px_4px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active-haptic transition-all group disabled:opacity-70">{supportLoading ? "Opening Checkout…" : `Support $${totalAmount.toFixed(2)}`} <ArrowRight size={20} strokeWidth={4} className="text-brew-yellow transition-transform group-hover:translate-x-1 shrink-0" /></button>
+                <div className="flex items-center justify-center gap-2 mt-5 opacity-30 text-[9px] font-black uppercase tracking-widest"><Lock size={10} /> Secure Stripe</div>
               </div>
-              <div className="space-y-3 mb-6">
-                <input type="text" placeholder="Your Name" value={supporterName} onChange={(e) => setSupporterName(e.target.value)} className="w-full px-4 py-3 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-bold text-xs focus:outline-none focus:bg-white transition-all shadow-[2px_2px_0px_0px_currentColor]" />
-                <textarea placeholder="Say something nice..." value={message} onChange={(e) => setMessage(e.target.value)} rows={3} className="w-full px-4 py-3 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-bold text-xs focus:outline-none focus:bg-white transition-all resize-none shadow-[2px_2px_0px_0px_currentColor]" />
+            ) : (
+              <div id="support-box" className="bg-white border-4 border-brew-text rounded-[32px] p-8 shadow-[6px_6px_0px_0px_currentColor] text-center">
+                <Coffee size={40} strokeWidth={2} className="mx-auto mb-4 text-brew-text/20" />
+                <h3 className="font-inter font-black text-sm uppercase tracking-widest text-brew-text/40 mb-2">Not Accepting Support</h3>
+                <p className="font-inter font-bold text-[10px] uppercase tracking-widest text-brew-text/30 leading-relaxed">
+                  This user is here to support others and has not set up payouts.
+                </p>
               </div>
-              <button onClick={handleSupportClick} disabled={supportLoading} className="flex w-full min-h-[60px] items-center justify-center gap-3 rounded-xl border-4 border-brew-text bg-brew-text text-[#fffdf0] px-6 py-3 font-black text-lg shadow-[4px_4px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active-haptic transition-all group disabled:opacity-70">{supportLoading ? "Opening Checkout…" : `Support $${totalAmount.toFixed(2)}`} <ArrowRight size={20} strokeWidth={4} className="text-brew-yellow transition-transform group-hover:translate-x-1 shrink-0" /></button>
-              <div className="flex items-center justify-center gap-2 mt-5 opacity-30 text-[9px] font-black uppercase tracking-widest"><Lock size={10} /> Secure Stripe</div>
-            </div>
+            )}
 
             {creator.tiers && creator.tiers.length > 0 && (
               <div className="space-y-4 pb-10">
@@ -471,26 +481,28 @@ export default function CreatorProfilePage() {
       </div>
 
       {/* ── Mobile Sticky Support Bar ── */}
-      <div className={`lg:hidden fixed bottom-4 left-4 right-4 z-[60] transition-all duration-500 transform ${showSticky ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'}`}>
-        <div className="bg-brew-text border-2 border-brew-text rounded-2xl p-3 flex items-center justify-between gap-4 shadow-[6px_6px_0px_0px_#F5C518]">
-          <div className="flex items-center gap-3 min-w-0 pl-2">
-            <Avatar name={creator.creator_name} src={creator.creator_image ? `${API_ORIGIN}${creator.creator_image}` : ""} size="sm" className="border-2 border-white" />
-            <div className="min-w-0">
-              <p className="font-black text-white text-xs truncate leading-none mb-1">Support {creatorFirstName}</p>
-              <p className="font-bold text-brew-yellow text-[9px] uppercase tracking-widest leading-none">One cup at a time</p>
+      {creator.stripe_connected && (
+        <div className={`lg:hidden fixed bottom-4 left-4 right-4 z-[60] transition-all duration-500 transform ${showSticky ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'}`}>
+          <div className="bg-brew-text border-2 border-brew-text rounded-2xl p-3 flex items-center justify-between gap-4 shadow-[6px_6px_0px_0px_#F5C518]">
+            <div className="flex items-center gap-3 min-w-0 pl-2">
+              <Avatar name={creator.creator_name} src={creator.creator_image ? `${API_ORIGIN}${creator.creator_image}` : ""} size="sm" className="border-2 border-white" />
+              <div className="min-w-0">
+                <p className="font-black text-white text-xs truncate leading-none mb-1">Support {creatorFirstName}</p>
+                <p className="font-bold text-brew-yellow text-[9px] uppercase tracking-widest leading-none">One cup at a time</p>
+              </div>
             </div>
+            <button 
+              onClick={() => {
+                const el = document.getElementById('support-box');
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
+              className="px-6 py-2.5 bg-brew-yellow border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+            >
+              Support
+            </button>
           </div>
-          <button 
-            onClick={() => {
-              const el = document.getElementById('support-box');
-              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }}
-            className="px-6 py-2.5 bg-brew-yellow border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
-          >
-            Support
-          </button>
         </div>
-      </div>
+      )}
 
       {showToast && <Toast message={showToast.message} type={showToast.type} onClose={() => setShowToast(null)} />}
       

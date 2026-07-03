@@ -4,6 +4,7 @@ import Button from "../components/Button";
 import Toast from "../components/Toast";
 import { API_BASE, getCategories } from "../lib/api";
 import { ArrowRight, Check, X, Loader2 } from "lucide-react";
+import ImageCropper from "../components/ImageCropper";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function SignUpPage() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [urlStatus, setUrlStatus] = useState(null); // null, 'checking', 'available', 'taken', 'too-short'
+  const [cropImageSrc, setCropImageSrc] = useState(null);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -85,6 +87,20 @@ export default function SignUpPage() {
       return;
     }
 
+    if (file.size > 2 * 1024 * 1024) {
+      setToast({ type: "error", message: "Avatar image must be under 2MB" });
+      e.target.value = ""; // reset input
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setCropImageSrc(previewUrl);
+    e.target.value = ""; // Reset input so same file can be selected again
+  };
+
+  const handleCropComplete = (croppedBlob) => {
+    setCropImageSrc(null);
+    const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };
@@ -119,7 +135,7 @@ export default function SignUpPage() {
       data.append("confirmPassword", form.confirmPassword);
       data.append("url", form.url);
       data.append("bio", form.bio);
-      data.append("category_id", form.category);
+      data.append("category", form.category);
       if (avatarFile) data.append("avatar", avatarFile);
 
       const res = await fetch(`${API_BASE}/auth/register`, {
@@ -145,9 +161,13 @@ export default function SignUpPage() {
               ? "That email is already registered."
               : body.error === "invalid_category"
                 ? "Please choose a valid category."
-                : body.fields
-                  ? "Please fix the highlighted fields."
-                  : "Sign up failed. Please try again.",
+                : body.error === "avatar exceeds 2MB limit"
+                  ? "Avatar image must be under 2MB."
+                  : body.error === "avatar must be a JPG, PNG, or GIF image"
+                    ? "Avatar must be a JPG, PNG, or GIF image."
+                    : body.fields
+                      ? "Please fix the highlighted fields."
+                      : "Sign up failed. Please try again.",
         });
         return;
       }
@@ -446,7 +466,7 @@ export default function SignUpPage() {
               >
                 <option value="">Select a category</option>
                 {categories.map((cat) => (
-                  <option key={cat.category_id} value={cat.category_id}>
+                  <option key={cat.category_id} value={cat.category_slug}>
                     {cat.category_name}
                   </option>
                 ))}
@@ -487,6 +507,14 @@ export default function SignUpPage() {
           By signing up, you agree to our Terms & Privacy Policy.
         </p>
       </div>
+
+      {cropImageSrc && (
+        <ImageCropper
+          imageSrc={cropImageSrc}
+          onCropCompleteAction={handleCropComplete}
+          onCancel={() => setCropImageSrc(null)}
+        />
+      )}
 
       {toast && (
         <Toast
