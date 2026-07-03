@@ -64,9 +64,10 @@ export default function DashboardEarnings() {
   }, []);
 
   const statCards = useMemo(() => [
-    { label: "Total Earned", value: data?.total_earned || "$0.00", change: data?.total_change || "+0%" },
-    { label: "Balance", value: data?.available_balance || "$0.00", change: "Available" },
-    { label: "Payouts", value: data?.total_payouts_sum || "$0.00", change: `${data?.payouts?.length || 0} total` },
+    { label: "Total Earned (Gross)", value: data?.total_earned || "$0.00", change: data?.total_change || "+0%" },
+    { label: "Net Earned", value: data?.net_earned || "$0.00", change: `${data?.platform_fee_percent || 10}% platform fee` },
+    { label: "Available Balance", value: data?.available_balance || "$0.00", change: "Available to request" },
+    { label: "Total Payouts", value: data?.total_payouts_sum || "$0.00", change: `${data?.payouts?.length || 0} total` },
   ], [data]);
 
   const handleRequestPayout = async (e) => {
@@ -112,8 +113,8 @@ export default function DashboardEarnings() {
           </div>
           <Skeleton className="w-32 h-12" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-28" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-10">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28" />)}
         </div>
         <Skeleton className="h-80 w-full mb-10" />
         <Skeleton className="h-64 w-full" />
@@ -145,7 +146,7 @@ export default function DashboardEarnings() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-10">
           {statCards.map((stat, i) => (
             <div
               key={i}
@@ -267,28 +268,52 @@ export default function DashboardEarnings() {
           <div className="relative w-full max-w-md bg-white border-4 border-brew-text rounded-[32px] p-8 shadow-[12px_12px_0px_0px_currentColor] animate-slide-in-up text-brew-text">
             <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 p-2 hover:bg-brew-yellow-light rounded-full transition-colors"><X size={20} strokeWidth={3} /></button>
             <h3 className="font-space font-black text-2xl uppercase tracking-tight mb-6 flex items-center gap-3 leading-none">Request Funds <Landmark size={24} className="text-brew-yellow" /></h3>
-            <form onSubmit={handleRequestPayout} className="space-y-6">
-              <div>
-                <label className="block font-inter font-black text-xs uppercase tracking-widest mb-2 opacity-60">Withdraw Amount</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-space font-black text-lg">$</span>
-                  <input type="number" step="0.01" value={payoutForm.amount} onChange={(e) => setPayoutForm({ ...payoutForm, amount: e.target.value })} className="w-full pl-10 pr-4 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-space font-black text-xl focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all" />
+            {data?.stripe_connected ? (
+              <div className="space-y-6">
+                <div className="p-5 border-4 border-brew-text bg-brew-yellow/20 rounded-2xl shadow-[4px_4px_0px_0px_currentColor] flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={20} className="text-brew-yellow animate-pulse" />
+                    <h4 className="font-space font-black text-sm uppercase">Stripe Express Active</h4>
+                  </div>
+                  <p className="font-inter font-bold text-xs leading-relaxed opacity-80">
+                    Since you have onboarded with Stripe Connect, all supporter contributions and membership subscriptions are instantly routed to your connected Stripe account (minus platform fees).
+                  </p>
+                  <p className="font-inter font-bold text-xs leading-relaxed opacity-80">
+                    Stripe will automatically deposit your payouts to your linked bank account on your standard payout schedule. No manual payouts are needed!
+                  </p>
                 </div>
-                <p className="mt-2 font-inter font-bold text-[10px] uppercase tracking-widest opacity-40">Available: {data?.available_balance}</p>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="w-full px-6 py-4 border-2 border-brew-text bg-brew-text text-white font-inter font-black text-xs uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_#F5C518] hover:translate-x-1 hover:translate-y-1 active:shadow-none transition-all"
+                >
+                  Got It
+                </button>
               </div>
-              <div className="grid grid-cols-1 gap-2">
-                {["Stripe", "PayPal"].map((method) => (
-                  <button key={method} type="button" onClick={() => setPayoutForm({ ...payoutForm, method })} className={`flex items-center justify-between px-5 py-3 border-2 border-brew-text rounded-xl transition-all ${payoutForm.method === method ? "bg-brew-yellow shadow-[3px_3px_0px_0px_currentColor] -translate-x-1 -translate-y-1" : "bg-white hover:bg-brew-yellow-light"}`}>
-                    <span className="font-inter font-black text-sm uppercase">{method}</span>
-                    {payoutForm.method === method && <Check size={16} strokeWidth={4} />}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} disabled={requesting} className="flex-1 px-6 py-4 border-2 border-brew-text bg-white font-inter font-black text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">Cancel</button>
-                <button type="submit" disabled={requesting} className="flex-1 px-6 py-4 border-2 border-brew-text bg-brew-text text-white font-inter font-black text-xs uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_#F5C518] hover:translate-x-1 hover:translate-y-1 active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2">{requesting ? <Loader2 size={14} className="animate-spin text-brew-yellow" /> : "Confirm"}</button>
-              </div>
-            </form>
+            ) : (
+              <form onSubmit={handleRequestPayout} className="space-y-6">
+                <div>
+                  <label className="block font-inter font-black text-xs uppercase tracking-widest mb-2 opacity-60">Withdraw Amount</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-space font-black text-lg">$</span>
+                    <input type="number" step="0.01" value={payoutForm.amount} onChange={(e) => setPayoutForm({ ...payoutForm, amount: e.target.value })} className="w-full pl-10 pr-4 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-space font-black text-xl focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all" />
+                  </div>
+                  <p className="mt-2 font-inter font-bold text-[10px] uppercase tracking-widest opacity-40">Available: {data?.available_balance}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {["Stripe", "PayPal"].map((method) => (
+                    <button key={method} type="button" onClick={() => setPayoutForm({ ...payoutForm, method })} className={`flex items-center justify-between px-5 py-3 border-2 border-brew-text rounded-xl transition-all ${payoutForm.method === method ? "bg-brew-yellow shadow-[3px_3px_0px_0px_currentColor] -translate-x-1 -translate-y-1" : "bg-white hover:bg-brew-yellow-light"}`}>
+                      <span className="font-inter font-black text-sm uppercase">{method}</span>
+                      {payoutForm.method === method && <Check size={16} strokeWidth={4} />}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-4 pt-4">
+                  <button type="button" onClick={() => setShowModal(false)} disabled={requesting} className="flex-1 px-6 py-4 border-2 border-brew-text bg-white font-inter font-black text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">Cancel</button>
+                  <button type="submit" disabled={requesting} className="flex-1 px-6 py-4 border-2 border-brew-text bg-brew-text text-white font-inter font-black text-xs uppercase tracking-widest rounded-xl shadow-[4px_4px_0px_0px_#F5C518] hover:translate-x-1 hover:translate-y-1 active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2">{requesting ? <Loader2 size={14} className="animate-spin text-brew-yellow" /> : "Confirm"}</button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

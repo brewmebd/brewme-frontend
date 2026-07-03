@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import Card from "../../components/Card";
 import Badge from "../../components/Badge";
 import Skeleton from "../../components/Skeleton";
-import { getDashboardStats, getDashboardSupporters } from "../../lib/api";
+import { getDashboardStats, getDashboardSupporters, getDashboardSettings } from "../../lib/api";
 import {
   DollarSign,
   Users,
@@ -59,26 +59,20 @@ function getRelativeTime(dateString) {
 export default function DashboardOverview() {
   const [stats, setStats] = useState(null);
   const [activity, setActivity] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Growth Checklist State (Simulated)
-  const [checklist, setChecklist] = useState([
-    { id: 1, text: "Set your profile name and bio", done: true, link: "/dashboard/settings" },
-    { id: 2, text: "Upload a profile avatar", done: true, link: "/dashboard/settings" },
-    { id: 3, text: "Connect your Stripe account", done: false, link: "/dashboard/settings" },
-    { id: 4, text: "Create your first public post", done: false, link: "/dashboard/posts" },
-    { id: 5, text: "Share your link on social media", done: false, link: "/dashboard/share" },
-  ]);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [statsData, activityData] = await Promise.all([
+        const [statsData, activityData, settingsData] = await Promise.all([
           getDashboardStats(),
-          getDashboardSupporters(5)
+          getDashboardSupporters(5),
+          getDashboardSettings(),
         ]);
         setStats(statsData);
         setActivity(Array.isArray(activityData) ? activityData : []);
+        setSettings(settingsData);
       } catch (err) {
         console.error("Failed to load dashboard overview:", err);
       } finally {
@@ -88,6 +82,34 @@ export default function DashboardOverview() {
     }
     loadData();
   }, []);
+
+  const linkCopied = localStorage.getItem("brewme_link_copied") === "true";
+
+  const checklist = useMemo(() => {
+    if (!settings || !stats) {
+      return [
+        { id: 1, text: "Set your profile name and bio", done: false, link: "/dashboard/settings" },
+        { id: 2, text: "Upload a profile avatar", done: false, link: "/dashboard/settings" },
+        { id: 3, text: "Connect your Stripe account", done: false, link: "/dashboard/settings" },
+        { id: 4, text: "Create your first public post", done: false, link: "/dashboard/posts" },
+        { id: 5, text: "Share your link on social media", done: false, link: "/dashboard/share" },
+      ];
+    }
+
+    const hasNameAndBio = !!(settings.profile?.creator_name?.trim() && settings.profile?.creator_bio?.trim());
+    const hasAvatar = !!settings.profile?.creator_image;
+    const isStripeConnected = !!settings.stripe?.is_connected;
+    const hasPost = (stats.total_posts || 0) > 0;
+    const isShared = linkCopied || (stats.total_supporters || 0) > 0;
+
+    return [
+      { id: 1, text: "Set your profile name and bio", done: hasNameAndBio, link: "/dashboard/settings" },
+      { id: 2, text: "Upload a profile avatar", done: hasAvatar, link: "/dashboard/settings" },
+      { id: 3, text: "Connect your Stripe account", done: isStripeConnected, link: "/dashboard/settings" },
+      { id: 4, text: "Create your first public post", done: hasPost, link: "/dashboard/posts" },
+      { id: 5, text: "Share your link on social media", done: isShared, link: "/dashboard/share" },
+    ];
+  }, [settings, stats, linkCopied]);
 
   const completedCount = checklist.filter(t => t.done).length;
   const progressPercent = (completedCount / checklist.length) * 100;

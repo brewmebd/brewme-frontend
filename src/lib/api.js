@@ -260,13 +260,38 @@ export const requestPayout = async ({ amount, method }) => {
   return res.json();
 };
 
+// Start the public checkout flow for a creator donation.
+export const createDonationCheckout = async (username, donationData) => {
+  const res = await fetch(`${API_BASE}/creators/${username}/donations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(donationData),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || error.error || "Failed to start checkout");
+  }
+  return res.json();
+};
+
+// Start the public checkout flow for a creator membership subscription.
+export const createMembershipCheckout = async (username, membershipData) => {
+  const res = await apiFetch(`/creators/${username}/memberships`, {
+    method: "POST",
+    body: JSON.stringify(membershipData),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || error.error || "Failed to start membership checkout");
+  }
+  return res.json();
+};
+
 // --- Public Endpoints ---
 
 // Get posts for a specific creator.
 export const getCreatorPosts = async (username, limit = 10) => {
-  const res = await fetch(
-    `${API_BASE}/creators/${username}/posts?limit=${limit}`,
-  );
+  const res = await apiFetch(`/creators/${username}/posts?limit=${limit}`);
   if (!res.ok) throw new Error("Failed to fetch creator posts");
   return res.json();
 };
@@ -364,6 +389,18 @@ export const getDashboardStripeStatus = async () => {
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
     throw new Error(error.message || "Failed to fetch Stripe status");
+  }
+  return res.json();
+};
+
+// Create or refresh the creator's Stripe Express onboarding / management link.
+export const createStripeConnectLink = async () => {
+  const res = await apiFetch("/dashboard/settings/stripe/connect", {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to open Stripe onboarding");
   }
   return res.json();
 };

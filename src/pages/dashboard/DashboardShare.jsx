@@ -29,6 +29,7 @@ export default function DashboardShare() {
 
   const handleCopy = () => {
     navigator.clipboard.writeText(profileUrl);
+    localStorage.setItem("brewme_link_copied", "true");
     setToast({ type: "success", message: "Link copied to clipboard!" });
   };
 

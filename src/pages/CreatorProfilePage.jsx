@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import Avatar from "../components/Avatar";
 import Toast from "../components/Toast";
 import Skeleton from "../components/Skeleton";
-import { API_BASE, API_ORIGIN, getCreatorPosts } from "../lib/api";
+import { API_BASE, API_ORIGIN, createDonationCheckout, getCreatorPosts, createMembershipCheckout, isAuthenticated } from "../lib/api";
 import {
   Lock,
   Globe,
@@ -12,7 +12,6 @@ import {
   AtSign,
   ArrowRight,
   Coffee,
-  Loader2,
   FileText,
   Heart,
   MessageSquare,
@@ -42,25 +41,12 @@ function getRelativeTime(dateString) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-const membershipTiers = [
-  {
-    id: 1,
-    name: "Supporter",
-    price: 5,
-    perks: ["Access to exclusive posts", "Supporter badge"],
-    color: "bg-blue-50",
-  },
-  {
-    id: 2,
-    name: "VIP Elite",
-    price: 15,
-    perks: ["Everything in Supporter", "Direct messaging", "Hi-res content"],
-    color: "bg-brew-yellow-light/40",
-  },
-];
+
 
 export default function CreatorProfilePage() {
   const { username } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [creator, setCreator] = useState(null);
   const [supporters, setSupporters] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +60,6 @@ export default function CreatorProfilePage() {
   const [supporterName, setSupporterName] = useState("");
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("supporters");
-  const [showCheckout, setShowCheckout] = useState(false);
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [showSticky, setShowSticky] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -155,7 +140,52 @@ export default function CreatorProfilePage() {
     navigator.clipboard.writeText(window.location.href);
     setShowToast({ message: "Link copied!", type: "success" });
   };
-  const handleSupportClick = () => setShowCheckout(true);
+  const [supportLoading, setSupportLoading] = useState(false);
+
+  const handleSupportClick = async () => {
+    if (supportLoading) return;
+    setSupportLoading(true);
+    try {
+      const result = await createDonationCheckout(username, {
+        cups: customCups ? parseInt(customCups, 10) || cupCount : cupCount,
+        supporter_name: supporterName,
+        message,
+        is_anonymous: false,
+      });
+      if (!result?.url) throw new Error("Checkout session missing URL.");
+      window.location.assign(result.url);
+    } catch (err) {
+      setShowToast({ message: err.message || "Could not start checkout.", type: "error" });
+    } finally {
+      setSupportLoading(false);
+    }
+  };
+
+  const [joiningTierId, setJoiningTierId] = useState(null);
+
+  const handleJoinTier = async (tierId) => {
+    if (!isAuthenticated()) {
+      setShowToast({ message: "Please log in or register to join a membership tier.", type: "error" });
+      setTimeout(() => {
+        navigate("/login", { state: { from: location.pathname } });
+      }, 1500);
+      return;
+    }
+    if (joiningTierId) return;
+    setJoiningTierId(tierId);
+    try {
+      const result = await createMembershipCheckout(username, {
+        tier_id: tierId,
+        supporter_name: supporterName,
+      });
+      if (!result?.url) throw new Error("Checkout session missing URL.");
+      window.location.assign(result.url);
+    } catch (err) {
+      setShowToast({ message: err.message || "Could not start membership checkout.", type: "error" });
+    } finally {
+      setJoiningTierId(null);
+    }
+  };
 
   const toggleLike = (postId, e) => {
     e.stopPropagation();
@@ -401,29 +431,41 @@ export default function CreatorProfilePage() {
                 <input type="text" placeholder="Your Name" value={supporterName} onChange={(e) => setSupporterName(e.target.value)} className="w-full px-4 py-3 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-bold text-xs focus:outline-none focus:bg-white transition-all shadow-[2px_2px_0px_0px_currentColor]" />
                 <textarea placeholder="Say something nice..." value={message} onChange={(e) => setMessage(e.target.value)} rows={3} className="w-full px-4 py-3 bg-[#fffdf0] border-2 border-brew-text rounded-xl font-bold text-xs focus:outline-none focus:bg-white transition-all resize-none shadow-[2px_2px_0px_0px_currentColor]" />
               </div>
-              <button onClick={handleSupportClick} className="flex w-full min-h-[60px] items-center justify-center gap-3 rounded-xl border-4 border-brew-text bg-brew-text text-[#fffdf0] px-6 py-3 font-black text-lg shadow-[4px_4px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active-haptic transition-all group">Support ${totalAmount.toFixed(2)} <ArrowRight size={20} strokeWidth={4} className="text-brew-yellow transition-transform group-hover:translate-x-1 shrink-0" /></button>
+              <button onClick={handleSupportClick} disabled={supportLoading} className="flex w-full min-h-[60px] items-center justify-center gap-3 rounded-xl border-4 border-brew-text bg-brew-text text-[#fffdf0] px-6 py-3 font-black text-lg shadow-[4px_4px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active-haptic transition-all group disabled:opacity-70">{supportLoading ? "Opening Checkout…" : `Support $${totalAmount.toFixed(2)}`} <ArrowRight size={20} strokeWidth={4} className="text-brew-yellow transition-transform group-hover:translate-x-1 shrink-0" /></button>
               <div className="flex items-center justify-center gap-2 mt-5 opacity-30 text-[9px] font-black uppercase tracking-widest"><Lock size={10} /> Secure Stripe</div>
             </div>
 
-            <div className="space-y-4 pb-10">
-              <h3 className="font-black text-[10px] uppercase tracking-[0.4em] flex items-center gap-3 px-3 text-brew-text/30">Membership Tiers</h3>
-              {membershipTiers.map((tier) => (
-                <div key={tier.id} className={`${tier.color} border-4 border-brew-text rounded-[28px] p-5 shadow-[4px_4px_0px_0px_currentColor] transition-all hover:scale-[1.02] flex flex-col h-full text-brew-text active-haptic`}>
-                  <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-black text-lg uppercase leading-none tracking-tight">{tier.name}</h4>
-                    <div className="text-right"><p className="font-black text-lg leading-none">${tier.price}</p><p className="text-[8px] font-bold opacity-30 uppercase tracking-widest mt-1">/month</p></div>
-                  </div>
-                  <ul className="space-y-2 mb-8 flex-grow">
-                    {tier.perks.map((perk, i) => (
-                      <li key={i} className="flex items-start gap-2 font-bold text-[11px] text-brew-text/80 leading-snug">
-                        <Check size={12} strokeWidth={5} className="mt-0.5 shrink-0 text-brew-text" /> {perk}
-                      </li>
-                    ))}
-                  </ul>
-                  <button onClick={handleSupportClick} className="w-full py-3 bg-white border-2 border-brew-text rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[3px_3px_0px_0px_currentColor] hover:-translate-y-0.5 transition-all">Join Tier</button>
-                </div>
-              ))}
-            </div>
+            {creator.tiers && creator.tiers.length > 0 && (
+              <div className="space-y-4 pb-10">
+                <h3 className="font-black text-[10px] uppercase tracking-[0.4em] flex items-center gap-3 px-3 text-brew-text/30">Membership Tiers</h3>
+                {creator.tiers.map((tier, index) => {
+                  const tierColors = ["bg-blue-50", "bg-brew-yellow-light/40", "bg-pink-50"];
+                  const colorClass = tierColors[index % tierColors.length];
+                  return (
+                    <div key={tier.id} className={`${colorClass} border-4 border-brew-text rounded-[28px] p-5 shadow-[4px_4px_0px_0px_currentColor] transition-all hover:scale-[1.02] flex flex-col h-full text-brew-text active-haptic`}>
+                      <div className="flex justify-between items-start mb-4">
+                        <h4 className="font-black text-lg uppercase leading-none tracking-tight">{tier.name}</h4>
+                        <div className="text-right"><p className="font-black text-lg leading-none">${parseFloat(tier.price).toFixed(2)}</p><p className="text-[8px] font-bold opacity-30 uppercase tracking-widest mt-1">/month</p></div>
+                      </div>
+                      <ul className="space-y-2 mb-8 flex-grow">
+                        {tier.perks && tier.perks.map((perk, i) => (
+                          <li key={i} className="flex items-start gap-2 font-bold text-[11px] text-brew-text/80 leading-snug">
+                            <Check size={12} strokeWidth={5} className="mt-0.5 shrink-0 text-brew-text" /> {perk}
+                          </li>
+                        ))}
+                      </ul>
+                      <button 
+                        onClick={() => handleJoinTier(tier.id)} 
+                        disabled={joiningTierId !== null}
+                        className="w-full py-3 bg-white border-2 border-brew-text rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[3px_3px_0px_0px_currentColor] hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                      >
+                        {joiningTierId === tier.id ? "Opening Checkout..." : "Join Tier"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </aside>
         </div>
       </div>
@@ -452,21 +494,6 @@ export default function CreatorProfilePage() {
 
       {showToast && <Toast message={showToast.message} type={showToast.type} onClose={() => setShowToast(null)} />}
       
-      {/* ── Checkout Modal ── */}
-      {showCheckout && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-brew-text/60 backdrop-blur-xl animate-fade-in" onClick={() => setShowCheckout(false)} />
-          <div className="relative w-full max-w-sm bg-white border-4 border-brew-text rounded-[32px] p-8 shadow-[10px_10px_0px_0px_currentColor] animate-slide-in-up text-brew-text text-center">
-            <button onClick={() => setShowCheckout(false)} className="absolute top-6 right-6 p-2 hover:bg-brew-yellow-light rounded-full transition-colors"><X size={20} strokeWidth={3} /></button>
-            <div className="w-16 h-16 bg-brew-yellow border-4 border-brew-text rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_0px_currentColor] animate-float"><Coffee size={32} strokeWidth={3} /></div>
-            <h3 className="font-inter font-black text-2xl uppercase tracking-tight mb-4">Complete Payment</h3>
-            <p className="font-bold text-sm text-brew-text/60 mb-8 leading-relaxed">You're about to support <span className="text-brew-text font-black">{creatorFirstName}</span> with a contribution of <span className="text-brew-text font-black">${totalAmount.toFixed(2)}</span>. Redirecting to our secure Stripe checkout...</p>
-            <button onClick={() => setShowCheckout(false)} className="w-full py-4 bg-brew-text text-white border-2 border-brew-text rounded-2xl font-black text-base uppercase tracking-widest shadow-[6px_6px_0px_0px_#F5C518] hover:translate-x-1 hover:translate-y-1 active:shadow-none transition-all">Continue to Stripe</button>
-            <p className="mt-6 text-[9px] font-black uppercase tracking-[0.2em] opacity-30">Transaction Secured by 256-bit Encryption</p>
-          </div>
-        </div>
-      )}
-
       {/* ── Avatar Lightbox ── */}
       {showAvatarModal && creator.creator_image && (
         <div

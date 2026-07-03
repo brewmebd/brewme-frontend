@@ -16,6 +16,7 @@ import {
   updateDashboardAvatar,
   updateDashboardNotifications,
   updateDashboardGoal,
+  createStripeConnectLink,
   API_ORIGIN,
 } from "../../lib/api";
 
@@ -38,13 +39,21 @@ const defaultNotifications = {
   marketingEmails: false,
 };
 
+const defaultStripe = {
+  is_connected: false,
+  card_last4: "",
+};
+
 export default function DashboardSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
   const [form, setForm] = useState(defaultForm);
   const [notifications, setNotifications] = useState(defaultNotifications);
+  const [stripe, setStripe] = useState(defaultStripe);
+  const [socialLinks, setSocialLinks] = useState([]);
   const avatarInputRef = useRef(null);
 
   const categories = [
@@ -91,6 +100,12 @@ export default function DashboardSettings() {
           weeklyReport: data.notifications?.weekly_report ?? false,
           marketingEmails: data.notifications?.marketing_emails ?? false,
         });
+
+        setStripe({
+          is_connected: data.stripe?.is_connected ?? false,
+          card_last4: data.stripe?.card_last4 ?? "",
+        });
+        setSocialLinks(data.social_links || []);
       } catch (err) {
         setError(err.message || "Failed to load profile settings.");
         console.error(err);
@@ -111,6 +126,27 @@ export default function DashboardSettings() {
 
   const openAvatarPicker = () => {
     avatarInputRef.current?.click();
+  };
+
+  const handleConnectStripe = async () => {
+    if (stripeLoading) return;
+
+    setStripeLoading(true);
+    try {
+      const result = await createStripeConnectLink();
+      if (!result?.url) {
+        throw new Error("Stripe did not return an onboarding link.");
+      }
+      window.location.assign(result.url);
+    } catch (err) {
+      setError(err.message || "Failed to open Stripe onboarding.");
+      setToast({
+        type: "error",
+        message: err.message || "Failed to open Stripe onboarding.",
+      });
+    } finally {
+      setStripeLoading(false);
+    }
   };
 
   const handleAvatarChange = async (e) => {
@@ -162,6 +198,7 @@ export default function DashboardSettings() {
           bio: form.bio,
           email: form.email,
           category: form.category,
+          social_links: socialLinks,
         }),
         updateDashboardNotifications({
           new_supporter: notifications.newSupporter,
@@ -387,6 +424,49 @@ export default function DashboardSettings() {
                 className="w-full px-5 py-4 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_currentColor] transition-all"
               />
             </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <label className="block font-inter font-black text-[10px] uppercase tracking-[0.2em] opacity-50">
+                  Social Links
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSocialLinks(prev => [...prev, ""])}
+                  className="px-3 py-1 border-2 border-brew-text bg-brew-yellow font-inter font-black text-[9px] uppercase tracking-widest rounded-lg shadow-[2px_2px_0px_0px_currentColor] hover:-translate-y-px active:translate-y-[2px] transition-all"
+                >
+                  + Add Link
+                </button>
+              </div>
+              <div className="space-y-3">
+                {socialLinks.map((link, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      placeholder="https://twitter.com/username"
+                      value={link}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSocialLinks(prev => prev.map((l, i) => i === idx ? val : l));
+                      }}
+                      className="flex-1 px-5 py-3 bg-[#fffdf0] border-2 border-brew-text rounded-2xl font-inter font-bold text-xs focus:outline-none focus:shadow-[2px_2px_0px_0px_currentColor] transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSocialLinks(prev => prev.filter((_, i) => i !== idx))}
+                      className="px-3 py-3 border-2 border-brew-text bg-red-100 hover:bg-red-200 font-inter font-black text-xs rounded-xl shadow-[2px_2px_0px_0px_currentColor] hover:-translate-y-px active:translate-y-[2px] transition-all"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+                {socialLinks.length === 0 && (
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-inter font-bold text-brew-text/35 text-center py-4 bg-[#fffdf0] border-2 border-dashed border-brew-text/25 rounded-2xl">
+                    No social links added yet.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="bg-white border-4 border-brew-text rounded-[32px] p-8 shadow-[8px_8px_0px_0px_currentColor] space-y-6">
@@ -439,16 +519,20 @@ export default function DashboardSettings() {
             </h3>
             <div className="bg-blue-50 border-2 border-brew-text rounded-2xl p-5 shadow-[3px_3px_0px_0px_currentColor]">
               <p className="font-inter font-black text-xs uppercase tracking-widest mb-1 leading-none">
-                Coming Soon
+                {stripe.is_connected ? "Stripe Connected" : "Stripe Setup"}
               </p>
               <p className="font-inter font-bold text-[10px] opacity-40 uppercase tracking-[0.2em] mb-4">
-                Payout controls will be implemented later.
+                {stripe.is_connected
+                  ? `Your payout account is connected${stripe.card_last4 ? ` ending in ${stripe.card_last4}` : ""}.`
+                  : "Connect Stripe to add your payout method and request withdrawals."}
               </p>
               <button
-                className="w-full py-3 bg-brew-text/70 text-white border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_#F5C518] cursor-not-allowed opacity-60"
-                disabled
+                type="button"
+                onClick={handleConnectStripe}
+                disabled={stripeLoading}
+                className="w-full py-3 bg-brew-text text-white border-2 border-brew-text rounded-xl font-inter font-black text-[10px] uppercase tracking-widest shadow-[2px_2px_0px_0px_#F5C518] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all disabled:opacity-60"
               >
-                Manage Stripe
+                {stripeLoading ? "Opening Stripe…" : stripe.is_connected ? "Manage Stripe" : "Connect Stripe"}
               </button>
             </div>
           </div>
