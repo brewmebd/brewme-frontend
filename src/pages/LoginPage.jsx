@@ -36,6 +36,10 @@ export default function LoginPage() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  const handlePrefillDemo = () => {
+    setForm({ email: "demo@brewme.com", password: "password" });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
@@ -254,7 +258,8 @@ export default function LoginPage() {
           <div className="bg-white border-2 border-brew-text rounded-[32px] p-8 md:p-10 shadow-[12px_12px_0px_0px_currentColor] text-brew-text">
             {!forgotMode ? (
               /* LOGIN FORM */
-              <form className="space-y-6" onSubmit={handleSubmit}>
+              <>
+                <form className="space-y-6" onSubmit={handleSubmit}>
                 <div>
                   <label
                     htmlFor="login-email"
@@ -310,6 +315,21 @@ export default function LoginPage() {
                   {!submitting && <ArrowRight size={20} strokeWidth={3} />}
                 </Button>
               </form>
+              <div 
+                onClick={handlePrefillDemo}
+                className="mt-6 p-4 border-2 border-dashed border-brew-text/30 bg-[#fffdf0] rounded-2xl flex flex-col gap-2 cursor-pointer hover:bg-brew-yellow-light/40 transition-colors group"
+                title="Click to auto-fill"
+              >
+                <div className="flex items-center gap-2 font-inter font-black text-xs uppercase tracking-wider text-brew-text">
+                  <span className="px-2 py-0.5 bg-brew-yellow border border-brew-text rounded shadow-[1px_1px_0px_0px_currentColor] text-[9px] group-hover:scale-105 transition-transform">Demo Account</span>
+                  <span className="group-hover:translate-x-0.5 transition-transform">Click to auto-fill</span>
+                </div>
+                <div className="font-inter text-xs text-brew-text/80 space-y-1">
+                  <p><strong>Email:</strong> <code className="bg-brew-text/5 px-1.5 py-0.5 rounded">demo@brewme.com</code></p>
+                  <p><strong>Password:</strong> <code className="bg-brew-text/5 px-1.5 py-0.5 rounded">password</code></p>
+                </div>
+              </div>
+              </>
             ) : !verificationMode ? (
               /* STEP 1: ENTER EMAIL FORM */
               <form className="space-y-6" onSubmit={handleRecoverySubmit}>
